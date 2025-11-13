@@ -1,14 +1,18 @@
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Sky } from '@react-three/drei';
+import { Sky } from '@react-three/drei';
 import { Suspense } from 'react';
 import CityEnvironment from './CityEnvironment';
 import Player from './Player';
+import CameraController from './CameraController';
 
 interface GameSceneProps {
-  timeOfDay: number; // 0-24
+  timeOfDay: number;
+  playerPosition: [number, number, number];
+  playerRotation: number;
+  isMoving: boolean;
 }
 
-const GameScene = ({ timeOfDay }: GameSceneProps) => {
+const GameScene = ({ timeOfDay, playerPosition, playerRotation, isMoving }: GameSceneProps) => {
   const isNight = timeOfDay < 6 || timeOfDay > 18;
   
   return (
@@ -39,14 +43,9 @@ const GameScene = ({ timeOfDay }: GameSceneProps) => {
           />
           
           <CityEnvironment />
-          <Player />
+          <Player position={playerPosition} rotation={playerRotation} isMoving={isMoving} />
           
-          <OrbitControls
-            enablePan={false}
-            minDistance={5}
-            maxDistance={30}
-            maxPolarAngle={Math.PI / 2.2}
-          />
+          <CameraController target={playerPosition} />
         </Suspense>
       </Canvas>
     </div>
