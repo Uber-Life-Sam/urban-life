@@ -57,6 +57,13 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        game: {
+          "sky-day": "hsl(var(--game-sky-day))",
+          "sky-night": "hsl(var(--game-sky-night))",
+          ground: "hsl(var(--game-ground))",
+          building: "hsl(var(--game-building))",
+          road: "hsl(var(--game-road))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
