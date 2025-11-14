@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+// src/pages/Index.tsx
+import { useState } from 'react';
 import GameScene from '@/components/game/GameScene';
 import GameHUD from '@/components/game/GameHUD';
 import VirtualJoystick from '@/components/game/VirtualJoystick';
@@ -10,6 +11,10 @@ import { Button } from '@/components/ui/button';
 import { Play, Pause } from 'lucide-react';
 import { Building } from '@/data/buildings';
 
+// Shop imports
+import Shop from '@/components/game/Shop';
+import { shopItems } from '@/data/shopItems';
+
 const Index = () => {
   const [gameTime, setGameTime] = useState(8);
   const [isPaused, setIsPaused] = useState(false);
@@ -18,119 +23,50 @@ const Index = () => {
   const [job, setJob] = useState('Explorer');
   const [currentJob, setCurrentJob] = useState<string | null>(null);
   const [currentJobPayRate, setCurrentJobPayRate] = useState(0);
-  
-  const [playerPosition, setPlayerPosition] = useState<[number, number, number]>([0, 0, 0]);
-  const [playerRotation, setPlayerRotation] = useState(0);
-  const [isMoving, setIsMoving] = useState(false);
-  const [currentBuilding, setCurrentBuilding] = useState<Building | null>(null);
-  const [npcPositions, setNpcPositions] = useState<Array<[number, number, number]>>([]);
-  
-  const { getMovementVector, setJoystickInput } = usePlayerMovement();
-  const lastUpdateTime = useRef(Date.now());
-  
-  // Apply collision detection
-  const entities = npcPositions.map(pos => ({ position: pos, radius: 0.5 }));
-  const adjustedPlayerPosition = useCollisionDetection(playerPosition, entities, 0.5);
 
-  // Movement update loop with collision detection
-  useEffect(() => {
-    const updateMovement = () => {
-      const now = Date.now();
-      const delta = (now - lastUpdateTime.current) / 1000;
-      lastUpdateTime.current = now;
+  // Shop integration
+  const [isShopOpen, setIsShopOpen] = useState(false);
+  const [inventory, setInventory] = useState<string[]>([]);
+  const [inventorySize, setInventorySize] = useState(10);
+  const [speedMultiplier, setSpeedMultiplier] = useState(1);
 
-      const movement = getMovementVector();
-      const isMovingNow = movement.x !== 0 || movement.z !== 0;
-      setIsMoving(isMovingNow);
+  const openShop = () => setIsShopOpen(true);
+  const closeShop = () => setIsShopOpen(false);
 
-      if (isMovingNow) {
-        const speed = 3; // units per second
-        const moveX = movement.x * speed * delta;
-        const moveZ = movement.z * speed * delta;
+  const handleBuy = (itemId: string) => {
+    const item = shopItems.find((i) => i.id === itemId);
+    if (!item) return;
+    if (money < item.price) return;
 
-        setPlayerPosition((prev) => {
-          const newX = prev[0] + moveX;
-          const newZ = prev[2] + moveZ;
-          
-          // Boundary limits
-          const maxDistance = 20;
-          const clampedX = Math.max(-maxDistance, Math.min(maxDistance, newX));
-          const clampedZ = Math.max(-maxDistance, Math.min(maxDistance, newZ));
-          
-          return [clampedX, prev[1], clampedZ];
-        });
+    setMoney((m) => m - item.price);
 
-        // Update rotation to face movement direction
-        if (movement.x !== 0 || movement.z !== 0) {
-          const angle = Math.atan2(movement.x, movement.z);
-          setPlayerRotation(angle);
+    // Apply immediate effects for food
+    if (item.type === 'food' && item.effect?.energy) {
+      setEnergy((e) => Math.min(100, e + item.effect!.energy!));
+    }
+
+    // Add to inventory for items/upgrades
+    if (item.type === 'item' || item.type === 'upgrade') {
+      // For upgrades, apply upgrade effect immediately
+      if (item.type === 'upgrade') {
+        if (item.effect?.inventorySizeIncrease) {
+          setInventorySize((s) => s + item.effect!.inventorySizeIncrease!);
+        }
+        if (item.effect?.speedMultiplier) {
+          setSpeedMultiplier((v) => v * item.effect!.speedMultiplier!);
         }
       }
 
-      requestAnimationFrame(updateMovement);
-    };
-
-    const animationId = requestAnimationFrame(updateMovement);
-    return () => cancelAnimationFrame(animationId);
-  }, [getMovementVector]);
-  
-  // Apply collision-adjusted position
-  useEffect(() => {
-    if (adjustedPlayerPosition) {
-      setPlayerPosition(adjustedPlayerPosition);
-    }
-  }, [adjustedPlayerPosition]);
-
-  // Time progression and job earnings
-  useEffect(() => {
-    if (isPaused) return;
-    
-    const interval = setInterval(() => {
-      setGameTime((prev) => {
-        const newTime = prev + 0.1;
-        return newTime >= 24 ? newTime - 24 : newTime;
+      // Respect inventory size when adding to inventory
+      setInventory((inv) => {
+        if (inv.length >= inventorySize) return inv; // don't exceed
+        return [...inv, item.id];
       });
-      
-      setEnergy((prev) => Math.max(0, prev - 0.05));
-      
-      // Earn money from job
-      if (currentJob) {
-        setMoney((prev) => prev + (currentJobPayRate / 3600)); // per second
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [isPaused, currentJob, currentJobPayRate]);
-
-  const formatTime = (time: number) => {
-    const hours = Math.floor(time);
-    const minutes = Math.floor((time - hours) * 60);
-    const period = hours >= 12 ? 'PM' : 'AM';
-    const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
-    return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
-  };
-
-  const handleJoystickMove = (x: number, z: number) => {
-    setJoystickInput(x, z);
+    }
   };
 
   const handleBuildingClick = (building: Building) => {
-    setCurrentBuilding(building);
-  };
-
-  const handleExitBuilding = () => {
-    setCurrentBuilding(null);
-  };
-
-  const handleStartJob = (jobId: string, payRate: number) => {
-    setCurrentJob(jobId);
-    setCurrentJobPayRate(payRate);
-    setJob(jobId);
-  };
-
-  const handleEndJob = () => {
-    setCurrentJob(null);
-    setCurrentJobPayRate(0);
+    // existing placeholder action
     setJob('Explorer');
   };
 
@@ -149,66 +85,30 @@ const Index = () => {
         </div>
       )}
 
-      {/* 3D Game Scene */}
-      <GameScene 
-        timeOfDay={gameTime}
-        playerPosition={playerPosition}
-        playerRotation={playerRotation}
-        isMoving={isMoving}
-        onBuildingClick={handleBuildingClick}
-        onNPCPositionsUpdate={setNpcPositions}
-      />
-
-      {/* Interior Scene */}
-      {currentBuilding && (
-        <InteriorScene building={currentBuilding} onExit={handleExitBuilding} />
-      )}
-
-      {/* Job UI */}
-      <JobUI 
-        onStartJob={handleStartJob}
-        currentJob={currentJob}
-        onEndJob={handleEndJob}
-      />
-
-      {/* Game HUD */}
-      <GameHUD
-        time={formatTime(gameTime)}
-        money={money}
-        energy={energy}
-        job={job}
-      />
-
-      {/* Virtual Joystick (Mobile) */}
-      <div className="md:hidden">
-        <VirtualJoystick onMove={handleJoystickMove} />
-      </div>
-
-      {/* Pause/Play Button */}
-      <div className="absolute top-4 right-4 z-10">
-        <Button
-          size="icon"
-          variant="secondary"
-          onClick={() => setIsPaused(!isPaused)}
-          className="rounded-full"
-        >
-          {isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
+      {/* Shop button */}
+      <div className="absolute top-4 left-4 z-50">
+        <Button onClick={() => setIsShopOpen((s) => !s)}>
+          Shop - ${money}
         </Button>
       </div>
 
-      {/* Controls Info */}
-      <div className="absolute top-20 left-1/2 -translate-x-1/2 pointer-events-none z-10">
-        <div className="bg-card/80 backdrop-blur-sm px-4 py-2 rounded-lg border border-border text-xs text-muted-foreground text-center">
-          <span className="hidden md:inline">WASD or Arrow Keys to move</span>
-          <span className="md:hidden">Use joystick to move</span>
-        </div>
-      </div>
+      {/* 3D Game Scene */}
+      <GameScene
+        timeOfDay={gameTime}
+        playerPosition={[0, 0, 0]}
+        playerRotation={0}
+        isMoving={false}
+        onBuildingClick={handleBuildingClick}
+        onNPCPositionsUpdate={() => {}}
+      />
 
-      {/* Game Title */}
-      <div className="absolute bottom-6 right-6 text-right pointer-events-none">
-        <h2 className="text-2xl font-bold text-primary/80">SimCraft</h2>
-        <p className="text-xs text-muted-foreground">Early Prototype</p>
-      </div>
+      {/* HUD and overlays */}
+      <GameHUD money={money} energy={energy} />
+
+      {/* Shop modal */}
+      {isShopOpen && (
+        <Shop money={money} onBuy={handleBuy} onClose={closeShop} />
+      )}
     </div>
   );
 };
