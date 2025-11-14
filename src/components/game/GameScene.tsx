@@ -4,6 +4,9 @@ import { Suspense } from 'react';
 import CityEnvironment from './CityEnvironment';
 import Player from './Player';
 import CameraController from './CameraController';
+import NPC from './NPC';
+import { useNPCMovement } from '@/hooks/useNPCMovement';
+import { npcRoutines, NPC_COLORS } from '@/data/npcRoutines';
 
 interface GameSceneProps {
   timeOfDay: number;
@@ -11,6 +14,11 @@ interface GameSceneProps {
   playerRotation: number;
   isMoving: boolean;
 }
+
+const NPCController = ({ routine, color, timeOfDay }: { routine: any; color: string; timeOfDay: number }) => {
+  const { position, rotation } = useNPCMovement(routine, timeOfDay);
+  return <NPC position={position} rotation={rotation} color={color} />;
+};
 
 const GameScene = ({ timeOfDay, playerPosition, playerRotation, isMoving }: GameSceneProps) => {
   const isNight = timeOfDay < 6 || timeOfDay > 18;
@@ -44,6 +52,16 @@ const GameScene = ({ timeOfDay, playerPosition, playerRotation, isMoving }: Game
           
           <CityEnvironment />
           <Player position={playerPosition} rotation={playerRotation} isMoving={isMoving} />
+          
+          {/* NPCs with daily routines */}
+          {npcRoutines.map((routine, index) => (
+            <NPCController
+              key={`npc-${index}`}
+              routine={routine}
+              color={NPC_COLORS[index % NPC_COLORS.length]}
+              timeOfDay={timeOfDay}
+            />
+          ))}
           
           <CameraController target={playerPosition} />
         </Suspense>
