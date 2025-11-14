@@ -2,25 +2,37 @@ import { useState, useEffect, useRef } from 'react';
 import GameScene from '@/components/game/GameScene';
 import GameHUD from '@/components/game/GameHUD';
 import VirtualJoystick from '@/components/game/VirtualJoystick';
+import InteriorScene from '@/components/game/InteriorScene';
+import JobUI from '@/components/game/JobUI';
 import { usePlayerMovement } from '@/hooks/usePlayerMovement';
+import { useCollisionDetection } from '@/hooks/useCollisionDetection';
 import { Button } from '@/components/ui/button';
 import { Play, Pause } from 'lucide-react';
+import { Building } from '@/data/buildings';
 
 const Index = () => {
   const [gameTime, setGameTime] = useState(8);
   const [isPaused, setIsPaused] = useState(false);
   const [money, setMoney] = useState(1250);
   const [energy, setEnergy] = useState(85);
-  const [job] = useState('Explorer');
+  const [job, setJob] = useState('Explorer');
+  const [currentJob, setCurrentJob] = useState<string | null>(null);
+  const [currentJobPayRate, setCurrentJobPayRate] = useState(0);
   
   const [playerPosition, setPlayerPosition] = useState<[number, number, number]>([0, 0, 0]);
   const [playerRotation, setPlayerRotation] = useState(0);
   const [isMoving, setIsMoving] = useState(false);
+  const [currentBuilding, setCurrentBuilding] = useState<Building | null>(null);
+  const [npcPositions, setNpcPositions] = useState<Array<[number, number, number]>>([]);
   
   const { getMovementVector, setJoystickInput } = usePlayerMovement();
   const lastUpdateTime = useRef(Date.now());
+  
+  // Apply collision detection
+  const entities = npcPositions.map(pos => ({ position: pos, radius: 0.5 }));
+  const adjustedPlayerPosition = useCollisionDetection(playerPosition, entities, 0.5);
 
-  // Movement update loop
+  // Movement update loop with collision detection
   useEffect(() => {
     const updateMovement = () => {
       const now = Date.now();
@@ -61,8 +73,15 @@ const Index = () => {
     const animationId = requestAnimationFrame(updateMovement);
     return () => cancelAnimationFrame(animationId);
   }, [getMovementVector]);
+  
+  // Apply collision-adjusted position
+  useEffect(() => {
+    if (adjustedPlayerPosition) {
+      setPlayerPosition(adjustedPlayerPosition);
+    }
+  }, [adjustedPlayerPosition]);
 
-  // Time progression
+  // Time progression and job earnings
   useEffect(() => {
     if (isPaused) return;
     
@@ -73,10 +92,15 @@ const Index = () => {
       });
       
       setEnergy((prev) => Math.max(0, prev - 0.05));
+      
+      // Earn money from job
+      if (currentJob) {
+        setMoney((prev) => prev + (currentJobPayRate / 3600)); // per second
+      }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isPaused]);
+  }, [isPaused, currentJob, currentJobPayRate]);
 
   const formatTime = (time: number) => {
     const hours = Math.floor(time);
@@ -88,6 +112,26 @@ const Index = () => {
 
   const handleJoystickMove = (x: number, z: number) => {
     setJoystickInput(x, z);
+  };
+
+  const handleBuildingClick = (building: Building) => {
+    setCurrentBuilding(building);
+  };
+
+  const handleExitBuilding = () => {
+    setCurrentBuilding(null);
+  };
+
+  const handleStartJob = (jobId: string, payRate: number) => {
+    setCurrentJob(jobId);
+    setCurrentJobPayRate(payRate);
+    setJob(jobId);
+  };
+
+  const handleEndJob = () => {
+    setCurrentJob(null);
+    setCurrentJobPayRate(0);
+    setJob('Explorer');
   };
 
   return (
@@ -111,6 +155,20 @@ const Index = () => {
         playerPosition={playerPosition}
         playerRotation={playerRotation}
         isMoving={isMoving}
+        onBuildingClick={handleBuildingClick}
+        onNPCPositionsUpdate={setNpcPositions}
+      />
+
+      {/* Interior Scene */}
+      {currentBuilding && (
+        <InteriorScene building={currentBuilding} onExit={handleExitBuilding} />
+      )}
+
+      {/* Job UI */}
+      <JobUI 
+        onStartJob={handleStartJob}
+        currentJob={currentJob}
+        onEndJob={handleEndJob}
       />
 
       {/* Game HUD */}
