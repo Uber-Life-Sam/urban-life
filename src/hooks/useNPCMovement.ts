@@ -27,14 +27,21 @@ export const useNPCMovement = (routine: NPCRoutine, timeOfDay: number, speed: nu
   };
 
   useEffect(() => {
-    const path = getCurrentPath();
+    // Reset waypoint index when path changes
+    currentWaypointIndex.current = 0;
     
     const updateMovement = () => {
       const now = Date.now();
       const delta = (now - lastUpdateTime.current) / 1000;
       lastUpdateTime.current = now;
 
+      const path = getCurrentPath();
       if (path.length === 0) return;
+
+      // Ensure index is within bounds
+      if (currentWaypointIndex.current >= path.length) {
+        currentWaypointIndex.current = 0;
+      }
 
       // Get current target waypoint
       const targetWaypoint = path[currentWaypointIndex.current];
