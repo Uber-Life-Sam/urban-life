@@ -19,6 +19,7 @@ interface GameSceneProps {
   playerPosition: [number, number, number];
   playerRotation: number;
   isMoving: boolean;
+  cameraOffset: [number, number, number];
   onBuildingClick: (building: Building) => void;
   onNPCPositionsUpdate: (positions: Array<[number, number, number]>) => void;
 }
@@ -61,6 +62,7 @@ const GameScene = ({
   playerPosition, 
   playerRotation, 
   isMoving,
+  cameraOffset,
   onBuildingClick,
   onNPCPositionsUpdate 
 }: GameSceneProps) => {
@@ -170,7 +172,7 @@ const GameScene = ({
             );
           })}
           
-          <CameraController target={playerPosition} />
+          <CameraController target={playerPosition} offset={cameraOffset} />
         </Suspense>
       </Canvas>
     </div>

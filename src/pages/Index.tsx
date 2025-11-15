@@ -5,7 +5,8 @@ import GameHUD from '@/components/game/GameHUD';
 import VirtualJoystick from '@/components/game/VirtualJoystick';
 import InteriorScene from '@/components/game/InteriorScene';
 import JobUI from '@/components/game/JobUI';
-import usePlayerMovement from '@/hooks/usePlayerMovement';
+import { usePlayerMovementGTA } from '@/hooks/usePlayerMovementGTA';
+import { useCameraOrbit } from '@/hooks/useCameraOrbit';
 import { useCollisionDetection } from '@/hooks/useCollisionDetection';
 import { Button } from '@/components/ui/button';
 import { Play, Pause } from 'lucide-react';
@@ -23,6 +24,12 @@ const Index = () => {
   const [job, setJob] = useState('Explorer');
   const [currentJob, setCurrentJob] = useState<string | null>(null);
   const [currentJobPayRate, setCurrentJobPayRate] = useState(0);
+
+  // Camera orbit control
+  const cameraOrbit = useCameraOrbit(8, Math.PI / 4);
+  
+  // Player movement with camera-relative controls
+  const playerState = usePlayerMovementGTA(cameraOrbit.azimuth, 5);
 
   // Shop integration
   const [isShopOpen, setIsShopOpen] = useState(false);
@@ -78,9 +85,12 @@ const Index = () => {
           <div className="text-center space-y-4 px-4">
             <h1 className="text-4xl md:text-6xl font-bold text-primary">SimCraft</h1>
             <p className="text-xl text-muted-foreground">Urban Life Simulator</p>
-            <p className="text-sm text-muted-foreground max-w-md">
-              Use WASD or joystick to move around the city
-            </p>
+            <div className="text-sm text-muted-foreground max-w-md space-y-2">
+              <p className="font-semibold text-foreground">Controls:</p>
+              <p><span className="text-primary font-medium">WASD</span> - Move around</p>
+              <p><span className="text-primary font-medium">Right Mouse + Drag</span> - Rotate camera</p>
+              <p><span className="text-primary font-medium">Mouse Wheel</span> - Zoom in/out</p>
+            </div>
           </div>
         </div>
       )}
@@ -95,9 +105,10 @@ const Index = () => {
       {/* 3D Game Scene */}
       <GameScene
         timeOfDay={gameTime}
-        playerPosition={[0, 0, 0]}
-        playerRotation={0}
-        isMoving={false}
+        playerPosition={playerState.position}
+        playerRotation={playerState.rotation}
+        isMoving={playerState.isMoving}
+        cameraOffset={cameraOrbit.offset}
         onBuildingClick={handleBuildingClick}
         onNPCPositionsUpdate={() => {}}
       />
