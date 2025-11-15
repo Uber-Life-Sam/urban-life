@@ -5,7 +5,7 @@ import GameHUD from '@/components/game/GameHUD';
 import VirtualJoystick from '@/components/game/VirtualJoystick';
 import InteriorScene from '@/components/game/InteriorScene';
 import JobUI from '@/components/game/JobUI';
-import { usePlayerMovement } from '@/hooks/usePlayerMovement';
+import usePlayerMovement from '@/hooks/usePlayerMovement';
 import { useCollisionDetection } from '@/hooks/useCollisionDetection';
 import { Button } from '@/components/ui/button';
 import { Play, Pause } from 'lucide-react';
@@ -103,7 +103,12 @@ const Index = () => {
       />
 
       {/* HUD and overlays */}
-      <GameHUD money={money} energy={energy} />
+      <GameHUD 
+        time={`${Math.floor(gameTime)}:${String(Math.floor((gameTime % 1) * 60)).padStart(2, '0')}`}
+        money={money} 
+        energy={energy} 
+        job={job}
+      />
 
       {/* Shop modal */}
       {isShopOpen && (
