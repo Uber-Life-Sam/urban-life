@@ -28,7 +28,7 @@ const Index = () => {
   // Camera orbit control
   const cameraOrbit = useCameraOrbit(8, Math.PI / 4);
   
-  // Player movement with camera-relative controls
+  // Player movement with camera-relative controls - spawn at house
   const playerState = usePlayerMovementGTA(cameraOrbit.azimuth, 5);
 
   // Shop integration

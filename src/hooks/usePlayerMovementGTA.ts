@@ -8,10 +8,11 @@ export interface PlayerState {
 
 export const usePlayerMovementGTA = (
   cameraAzimuth: number,
-  speed: number = 5
+  speed: number = 5,
+  initialPosition: [number, number, number] = [0, 0, -25]
 ) => {
   const [playerState, setPlayerState] = useState<PlayerState>({
-    position: [0, 0, 0],
+    position: initialPosition,
     rotation: 0,
     isMoving: false,
   });

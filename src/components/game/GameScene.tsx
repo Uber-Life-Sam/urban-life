@@ -8,6 +8,8 @@ import NPC from './NPC';
 import TrafficLight from './TrafficLight';
 import Vehicle from './Vehicle';
 import ClickableBuilding from './ClickableBuilding';
+import PlayerHouse from './PlayerHouse';
+import PlayerLand from './PlayerLand';
 import { useNPCMovement } from '@/hooks/useNPCMovement';
 import { useVehicleMovement } from '@/hooks/useVehicleMovement';
 import { npcRoutines, NPC_COLORS } from '@/data/npcRoutines';
@@ -127,6 +129,11 @@ const GameScene = ({
           />
           
           <CityEnvironment />
+          
+          {/* Player's Land and House */}
+          <PlayerLand position={[0, 0, -30]} />
+          <PlayerHouse position={[0, 0, -30]} />
+          
           <Player position={playerPosition} rotation={playerRotation} isMoving={isMoving} />
           
           {/* Clickable Buildings */}
