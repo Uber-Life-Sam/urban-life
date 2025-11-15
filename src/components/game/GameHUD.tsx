@@ -53,7 +53,7 @@ const GameHUD = ({ time, money, energy, job }: GameHUDProps) => {
       {/* Controls Info */}
       <div className="absolute bottom-24 left-1/2 -translate-x-1/2 pointer-events-auto">
         <div className="bg-card/80 backdrop-blur-sm px-4 py-2 rounded-lg border border-border text-xs text-muted-foreground text-center">
-          Drag to rotate • Scroll to zoom
+          <span className="text-primary font-medium">Right Click + Drag</span> to rotate • <span className="text-primary font-medium">Scroll</span> to zoom
         </div>
       </div>
     </div>
