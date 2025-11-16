@@ -1,41 +1,37 @@
 // src/hooks/usePlayerMovementGTA.ts
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import * as THREE from "three";
 
-export default function usePlayerMovementGTA(playerRef, cameraRef) {
-  const [position, setPosition] = useState([0, 1, 0]);
-  const [rotation, setRotation] = useState([0, 0, 0]);
-  const [isMoving, setIsMoving] = useState(false);
-
+export default function usePlayerMovementGTA(playerRef: any, cameraRef: any, onUpdate?: (state: any) => void) {
   useEffect(() => {
+    if (!playerRef || !cameraRef) return;
     const keys = { w: false, a: false, s: false, d: false };
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key in keys) keys[e.key] = true;
+      if (e.key in keys) keys[e.key as keyof typeof keys] = true;
     };
-
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key in keys) keys[e.key] = false;
+      if (e.key in keys) keys[e.key as keyof typeof keys] = false;
     };
 
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
 
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("keyup", handleKeyUp);
-    };
-  }, []);
+    let mounted = true;
+    const speed = 0.12;
+    const rotationSmooth = 0.15;
 
-  useEffect(() => {
-    const speed = 0.08;
+    const loop = () => {
+      if (!mounted) return;
+      if (!playerRef.current || !cameraRef.current) {
+        requestAnimationFrame(loop);
+        return;
+      }
 
-    const updateMovement = () => {
-      if (!playerRef.current || !cameraRef.current) return;
-
-      const cam = cameraRef.current;
       const player = playerRef.current;
+      const cam = cameraRef.current;
 
+      // forward & right based on camera
       const forward = new THREE.Vector3();
       cam.getWorldDirection(forward);
       forward.y = 0;
@@ -44,44 +40,41 @@ export default function usePlayerMovementGTA(playerRef, cameraRef) {
       const right = new THREE.Vector3();
       right.crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
 
-      let moved = false;
-      const movement = new THREE.Vector3(0, 0, 0);
+      const move = new THREE.Vector3();
+      if (keys.w) move.add(forward);
+      if (keys.s) move.sub(forward);
+      if (keys.a) move.sub(right);
+      if (keys.d) move.add(right);
 
-      if (window.keys?.w) {
-        movement.add(forward.multiplyScalar(speed));
-        moved = true;
-      }
-      if (window.keys?.s) {
-        movement.add(forward.multiplyScalar(-speed));
-        moved = true;
-      }
-      if (window.keys?.a) {
-        movement.add(right.multiplyScalar(speed));
-        moved = true;
-      }
-      if (window.keys?.d) {
-        movement.add(right.multiplyScalar(-speed));
-        moved = true;
+      let isMoving = false;
+      if (move.length() > 0) {
+        move.normalize();
+        player.position.x += move.x * speed;
+        player.position.z += move.z * speed;
+
+        const targetRot = Math.atan2(move.x, move.z);
+        player.rotation.y += (targetRot - player.rotation.y) * rotationSmooth;
+
+        isMoving = true;
       }
 
-      if (moved) {
-        player.position.add(movement);
-        setPosition([player.position.x, player.position.y, player.position.z]);
-
-        const targetRotation = Math.atan2(movement.x, movement.z);
-        setRotation([0, targetRotation, 0]);
-
-        player.rotation.y = targetRotation;
+      if (onUpdate) {
+        onUpdate({
+          position: [player.position.x, player.position.y, player.position.z],
+          rotation: [player.rotation.x, player.rotation.y, player.rotation.z],
+          isMoving,
+        });
       }
 
-      setIsMoving(moved);
-
-      requestAnimationFrame(updateMovement);
+      requestAnimationFrame(loop);
     };
 
-    window.keys = { w: false, a: false, s: false, d: false };
-    updateMovement();
-  }, [playerRef, cameraRef]);
+    requestAnimationFrame(loop);
 
-  return { position, rotation, isMoving };
+    return () => {
+      mounted = false;
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, [playerRef, cameraRef, onUpdate]);
 }
