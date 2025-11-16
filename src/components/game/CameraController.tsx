@@ -1,40 +1,101 @@
-// src/components/game/CameraController.tsx
-import React, { forwardRef, useEffect, useRef } from "react";
-import { useFrame, useThree } from "@react-three/fiber";
-import { Vector3 } from "three";
+// src/hooks/usePlayerMovementGTA.ts
+import { useState, useEffect } from "react";
+import * as THREE from "three";
 
-interface CameraControllerProps {
-  target: [number, number, number];
-  offset: [number, number, number];
-}
-
-const CameraController = forwardRef<any, CameraControllerProps>(({ target, offset }, ref) => {
-  const { camera } = useThree();
-  const currentPosition = useRef(new Vector3());
-  const currentLookAt = useRef(new Vector3());
-
-  // expose camera object to parent via ref
-  useEffect(() => {
-    if (!ref) return;
-    if (typeof ref === "function") {
-      ref(camera);
-    } else {
-      (ref as any).current = camera;
-    }
-  }, [camera, ref]);
-
-  useFrame(() => {
-    const targetPosition = new Vector3(target[0] + offset[0], target[1] + offset[1], target[2] + offset[2]);
-    currentPosition.current.lerp(targetPosition, 0.15);
-    camera.position.copy(currentPosition.current);
-
-    const lookAtTarget = new Vector3(target[0], target[1] + 1, target[2]);
-    currentLookAt.current.lerp(lookAtTarget, 0.15);
-    camera.lookAt(currentLookAt.current);
+export default function usePlayerMovementGTA(playerRef, cameraRef) {
+  const [playerState, setPlayerState] = useState({
+    position: [0, 1, 0],
+    rotation: [0, 0, 0],
+    isMoving: false,
   });
 
-  return null;
-});
+  useEffect(() => {
+    window.keys = { w: false, a: false, s: false, d: false };
 
-CameraController.displayName = "CameraController";
-export default CameraController;
+    const handleKeyDown = (e) => {
+      if (e.key.toLowerCase() in window.keys) {
+        window.keys[e.key.toLowerCase()] = true;
+      }
+    };
+
+    const handleKeyUp = (e) => {
+      if (e.key.toLowerCase() in window.keys) {
+        window.keys[e.key.toLowerCase()] = false;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!playerRef.current || !cameraRef.current) return;
+
+    const speed = 0.10;
+
+    const movePlayer = () => {
+      const cam = cameraRef.current;
+      const player = playerRef.current;
+
+      // FORWARD vector
+      const forward = new THREE.Vector3();
+      cam.getWorldDirection(forward);
+      forward.y = 0;
+      forward.normalize();
+
+      // RIGHT vector (FIXED)
+      const right = new THREE.Vector3();
+      right.crossVectors(new THREE.Vector3(0, 1, 0), forward).normalize();
+
+      let moved = false;
+      const movement = new THREE.Vector3();
+
+      if (window.keys.w) {
+        movement.add(forward.clone().multiplyScalar(speed));
+        moved = true;
+      }
+      if (window.keys.s) {
+        movement.add(forward.clone().multiplyScalar(-speed));
+        moved = true;
+      }
+      if (window.keys.a) {
+        movement.add(right.clone().multiplyScalar(-speed)); // FIXED
+        moved = true;
+      }
+      if (window.keys.d) {
+        movement.add(right.clone().multiplyScalar(speed)); // FIXED
+        moved = true;
+      }
+
+      if (moved) {
+        player.position.add(movement);
+
+        // Rotation towards movement direction
+        const rotY = Math.atan2(movement.x, movement.z);
+        player.rotation.y = rotY;
+
+        setPlayerState({
+          position: [player.position.x, player.position.y, player.position.z],
+          rotation: [0, rotY, 0],
+          isMoving: true,
+        });
+      } else {
+        setPlayerState((prev) => ({
+          ...prev,
+          isMoving: false,
+        }));
+      }
+
+      requestAnimationFrame(movePlayer);
+    };
+
+    movePlayer();
+  }, [playerRef, cameraRef]);
+
+  return playerState;
+}
