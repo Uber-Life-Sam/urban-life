@@ -168,7 +168,7 @@ const GameScene = ({
           <PlayerHouse position={[0, 0, -30]} />
 
           {/* Player with ref */}
-          <Player ref={playerRef} position={playerPosition} rotation={playerRotation} isMoving={isMoving} />
+          <Player ref={playerRef} /* position removed, ref will control position */ rotation={playerRotation} isMoving={isMoving} />
 
           {/* Clickable Buildings */}
           {buildings.map((building) => (
@@ -211,7 +211,7 @@ const GameScene = ({
 
           {/* CameraController sets cameraRef.current internally */}
           <PerspectiveCamera makeDefault position={[10, 8, 10]} />
-          <CameraController ref={cameraRef} target={playerPosition} offset={cameraOffset} />
+          <CameraController ref={cameraRef} target={playerPosition} offset={cameraOffset} followRotation={playerRotation} />
         </Suspense>
       </Canvas>
     </div>
