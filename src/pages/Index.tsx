@@ -5,7 +5,7 @@ import GameHUD from '@/components/game/GameHUD';
 import VirtualJoystick from '@/components/game/VirtualJoystick';
 import InteriorScene from '@/components/game/InteriorScene';
 import JobUI from '@/components/game/JobUI';
-import { usePlayerMovementGTA } from '@/hooks/usePlayerMovementGTA';
+import usePlayerMovementGTA(playerRef, cameraRef);
 import { useCameraOrbit } from '@/hooks/useCameraOrbit';
 import { useCollisionDetection } from '@/hooks/useCollisionDetection';
 import { Button } from '@/components/ui/button';
