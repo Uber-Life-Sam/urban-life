@@ -1,0 +1,23 @@
+using UnityEngine;
+using UnityEngine.Networking;
+using System.Collections;
+
+public class LovableSender : MonoBehaviour
+{
+    public string serverUrl = "https://your-server.example.com/api/savePlayer";
+
+    public IEnumerator SendPlayerData(string json)
+    {
+        var uwr = new UnityWebRequest(serverUrl, "POST");
+        byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(json);
+        uwr.uploadHandler = new UploadHandlerRaw(bodyRaw);
+        uwr.downloadHandler = new DownloadHandlerBuffer();
+        uwr.SetRequestHeader("Content-Type", "application/json");
+        yield return uwr.SendWebRequest();
+
+        if (uwr.result == UnityWebRequest.Result.Success)
+            Debug.Log("Saved: " + uwr.downloadHandler.text);
+        else
+            Debug.LogError("Save error: " + uwr.error);
+    }
+}
