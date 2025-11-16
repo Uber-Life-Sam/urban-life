@@ -11,10 +11,41 @@ interface NPCProps {
 
 const NPC = ({ position, rotation, color, scale = 0.8 }: NPCProps) => {
   const groupRef = useRef<any>(null);
+  const leftLegRef = useRef<any>(null);
+  const rightLegRef = useRef<any>(null);
+  const leftArmRef = useRef<any>(null);
+  const rightArmRef = useRef<any>(null);
+  const prevPositionRef = useRef(position);
 
-  useFrame(() => {
+  useFrame((state) => {
     if (groupRef.current) {
       groupRef.current.rotation.y = rotation;
+    }
+
+    // Check if NPC is moving
+    const isMoving = 
+      Math.abs(position[0] - prevPositionRef.current[0]) > 0.001 ||
+      Math.abs(position[2] - prevPositionRef.current[2]) > 0.001;
+    
+    prevPositionRef.current = position;
+
+    if (isMoving) {
+      const time = state.clock.getElapsedTime();
+      // Walking animation
+      if (leftLegRef.current && rightLegRef.current) {
+        leftLegRef.current.rotation.x = Math.sin(time * 10) * 0.4;
+        rightLegRef.current.rotation.x = Math.sin(time * 10 + Math.PI) * 0.4;
+      }
+      if (leftArmRef.current && rightArmRef.current) {
+        leftArmRef.current.rotation.x = Math.sin(time * 10 + Math.PI) * 0.3;
+        rightArmRef.current.rotation.x = Math.sin(time * 10) * 0.3;
+      }
+    } else {
+      // Reset to neutral pose
+      if (leftLegRef.current) leftLegRef.current.rotation.x *= 0.9;
+      if (rightLegRef.current) rightLegRef.current.rotation.x *= 0.9;
+      if (leftArmRef.current) leftArmRef.current.rotation.x *= 0.9;
+      if (rightArmRef.current) rightArmRef.current.rotation.x *= 0.9;
     }
   });
 
@@ -33,21 +64,21 @@ const NPC = ({ position, rotation, color, scale = 0.8 }: NPCProps) => {
       </mesh>
       
       {/* Arms */}
-      <mesh castShadow receiveShadow position={[-0.35 * scale, 0.75, 0]}>
+      <mesh ref={leftArmRef} castShadow receiveShadow position={[-0.35 * scale, 0.75, 0]}>
         <boxGeometry args={[0.15 * scale, 0.8 * scale, 0.15 * scale]} />
         <meshStandardMaterial color={color} />
       </mesh>
-      <mesh castShadow receiveShadow position={[0.35 * scale, 0.75, 0]}>
+      <mesh ref={rightArmRef} castShadow receiveShadow position={[0.35 * scale, 0.75, 0]}>
         <boxGeometry args={[0.15 * scale, 0.8 * scale, 0.15 * scale]} />
         <meshStandardMaterial color={color} />
       </mesh>
       
       {/* Legs */}
-      <mesh castShadow receiveShadow position={[-0.15 * scale, 0.25, 0]}>
+      <mesh ref={leftLegRef} castShadow receiveShadow position={[-0.15 * scale, 0.25, 0]}>
         <boxGeometry args={[0.2 * scale, 0.5 * scale, 0.2 * scale]} />
         <meshStandardMaterial color="#2c3e50" />
       </mesh>
-      <mesh castShadow receiveShadow position={[0.15 * scale, 0.25, 0]}>
+      <mesh ref={rightLegRef} castShadow receiveShadow position={[0.15 * scale, 0.25, 0]}>
         <boxGeometry args={[0.2 * scale, 0.5 * scale, 0.2 * scale]} />
         <meshStandardMaterial color="#2c3e50" />
       </mesh>

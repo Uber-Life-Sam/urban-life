@@ -19,6 +19,52 @@ const CityEnvironment = () => {
         <planeGeometry args={[50, 4]} />
         <meshStandardMaterial color="#404040" />
       </mesh>
+      
+      {/* Road markings - Lane lines */}
+      {Array.from({ length: 10 }).map((_, i) => (
+        <mesh key={`lane-v-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, i * 5 - 22.5]}>
+          <planeGeometry args={[0.1, 2]} />
+          <meshBasicMaterial color="#ffffff" />
+        </mesh>
+      ))}
+      {Array.from({ length: 10 }).map((_, i) => (
+        <mesh key={`lane-h-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[i * 5 - 22.5, 0.02, 0]}>
+          <planeGeometry args={[2, 0.1]} />
+          <meshBasicMaterial color="#ffffff" />
+        </mesh>
+      ))}
+      
+      {/* Crosswalks */}
+      {Array.from({ length: 8 }).map((_, i) => (
+        <mesh key={`cross-n-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[-1.5 + i * 0.4, 0.02, -2.5]}>
+          <planeGeometry args={[0.3, 1]} />
+          <meshBasicMaterial color="#ffffff" />
+        </mesh>
+      ))}
+      {Array.from({ length: 8 }).map((_, i) => (
+        <mesh key={`cross-s-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[-1.5 + i * 0.4, 0.02, 2.5]}>
+          <planeGeometry args={[0.3, 1]} />
+          <meshBasicMaterial color="#ffffff" />
+        </mesh>
+      ))}
+      {Array.from({ length: 8 }).map((_, i) => (
+        <mesh key={`cross-w-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[-2.5, 0.02, -1.5 + i * 0.4]}>
+          <planeGeometry args={[1, 0.3]} />
+          <meshBasicMaterial color="#ffffff" />
+        </mesh>
+      ))}
+      {Array.from({ length: 8 }).map((_, i) => (
+        <mesh key={`cross-e-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[2.5, 0.02, -1.5 + i * 0.4]}>
+          <planeGeometry args={[1, 0.3]} />
+          <meshBasicMaterial color="#ffffff" />
+        </mesh>
+      ))}
+      
+      {/* Sidewalks */}
+      <Sidewalk position={[-3, 0.05, 0]} rotation={0} length={50} />
+      <Sidewalk position={[3, 0.05, 0]} rotation={0} length={50} />
+      <Sidewalk position={[0, 0.05, -3]} rotation={Math.PI / 2} length={50} />
+      <Sidewalk position={[0, 0.05, 3]} rotation={Math.PI / 2} length={50} />
 
       {/* Buildings - Residential District */}
       <Building position={[-8, 0, -8]} size={[3, 6, 3]} color="#5a6c7a" />
@@ -42,11 +88,41 @@ const CityEnvironment = () => {
       <Building position={[15, 0, 8]} size={[4, 6, 4]} color="#7a6c7a" />
       <Building position={[8, 0, 15]} size={[3, 8, 3]} color="#6a5c6a" windows />
 
-      {/* Trees */}
-      <Tree position={[-5, 0, 3]} />
-      <Tree position={[5, 0, -3]} />
-      <Tree position={[-3, 0, 5]} />
-      <Tree position={[3, 0, 5]} />
+      {/* Street Lights at intersection corners */}
+      <StreetLight position={[2.5, 0, -2.5]} />
+      <StreetLight position={[-2.5, 0, -2.5]} />
+      <StreetLight position={[2.5, 0, 2.5]} />
+      <StreetLight position={[-2.5, 0, 2.5]} />
+      
+      {/* Street Lights along roads */}
+      <StreetLight position={[3.5, 0, -10]} />
+      <StreetLight position={[3.5, 0, 10]} />
+      <StreetLight position={[-3.5, 0, -10]} />
+      <StreetLight position={[-3.5, 0, 10]} />
+      <StreetLight position={[10, 0, 3.5]} />
+      <StreetLight position={[-10, 0, 3.5]} />
+      <StreetLight position={[10, 0, -3.5]} />
+      <StreetLight position={[-10, 0, -3.5]} />
+      
+      {/* Trees along sidewalks */}
+      <Tree position={[-5, 0, -10]} />
+      <Tree position={[-5, 0, -5]} />
+      <Tree position={[-5, 0, 5]} />
+      <Tree position={[-5, 0, 10]} />
+      <Tree position={[5, 0, -10]} />
+      <Tree position={[5, 0, -5]} />
+      <Tree position={[5, 0, 5]} />
+      <Tree position={[5, 0, 10]} />
+      <Tree position={[-10, 0, -5]} />
+      <Tree position={[-5, 0, -5]} />
+      <Tree position={[10, 0, -5]} />
+      <Tree position={[-10, 0, 5]} />
+      
+      {/* Benches */}
+      <Bench position={[-4, 0, -6]} rotation={0} />
+      <Bench position={[4, 0, 6]} rotation={Math.PI} />
+      <Bench position={[-6, 0, 4]} rotation={Math.PI / 2} />
+      <Bench position={[6, 0, -4]} rotation={-Math.PI / 2} />
     </group>
   );
 };
@@ -105,6 +181,72 @@ const Tree = ({ position }: { position: [number, number, number] }) => {
       <mesh position={[0, 1.5, 0]} castShadow>
         <sphereGeometry args={[0.8, 8, 8]} />
         <meshStandardMaterial color="#2d5a2d" />
+      </mesh>
+      <mesh position={[0, 2.2, 0]} castShadow>
+        <sphereGeometry args={[0.6, 8, 8]} />
+        <meshStandardMaterial color="#3d6a3d" />
+      </mesh>
+    </group>
+  );
+};
+
+const StreetLight = ({ position }: { position: [number, number, number] }) => {
+  return (
+    <group position={position}>
+      {/* Pole */}
+      <mesh position={[0, 2.5, 0]} castShadow>
+        <cylinderGeometry args={[0.08, 0.1, 5, 8]} />
+        <meshStandardMaterial color="#2c3e50" metalness={0.8} />
+      </mesh>
+      {/* Light fixture */}
+      <mesh position={[0, 5, 0]}>
+        <sphereGeometry args={[0.3, 16, 16]} />
+        <meshStandardMaterial color="#f39c12" emissive="#f39c12" emissiveIntensity={0.5} />
+      </mesh>
+      {/* Light emission */}
+      <pointLight position={[0, 5, 0]} color="#ffd700" intensity={2} distance={10} castShadow />
+    </group>
+  );
+};
+
+const Sidewalk = ({ position, rotation, length }: { position: [number, number, number], rotation: number, length: number }) => {
+  return (
+    <mesh rotation={[-Math.PI / 2, 0, rotation]} position={position} receiveShadow>
+      <planeGeometry args={[1.5, length]} />
+      <meshStandardMaterial color="#8a8a8a" roughness={0.9} />
+    </mesh>
+  );
+};
+
+const Bench = ({ position, rotation }: { position: [number, number, number], rotation: number }) => {
+  return (
+    <group position={position} rotation={[0, rotation, 0]}>
+      {/* Seat */}
+      <mesh position={[0, 0.4, 0]} castShadow>
+        <boxGeometry args={[1.2, 0.1, 0.4]} />
+        <meshStandardMaterial color="#8b4513" />
+      </mesh>
+      {/* Backrest */}
+      <mesh position={[0, 0.7, -0.15]} castShadow>
+        <boxGeometry args={[1.2, 0.6, 0.1]} />
+        <meshStandardMaterial color="#8b4513" />
+      </mesh>
+      {/* Legs */}
+      <mesh position={[-0.5, 0.2, 0.1]} castShadow>
+        <cylinderGeometry args={[0.05, 0.05, 0.4, 8]} />
+        <meshStandardMaterial color="#2c3e50" />
+      </mesh>
+      <mesh position={[0.5, 0.2, 0.1]} castShadow>
+        <cylinderGeometry args={[0.05, 0.05, 0.4, 8]} />
+        <meshStandardMaterial color="#2c3e50" />
+      </mesh>
+      <mesh position={[-0.5, 0.2, -0.1]} castShadow>
+        <cylinderGeometry args={[0.05, 0.05, 0.4, 8]} />
+        <meshStandardMaterial color="#2c3e50" />
+      </mesh>
+      <mesh position={[0.5, 0.2, -0.1]} castShadow>
+        <cylinderGeometry args={[0.05, 0.05, 0.4, 8]} />
+        <meshStandardMaterial color="#2c3e50" />
       </mesh>
     </group>
   );
