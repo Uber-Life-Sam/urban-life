@@ -24,23 +24,18 @@ const Index = () => {
   // Camera Orbit
   const cameraOrbit = useCameraOrbit(8, Math.PI / 4);
 
-  // Player state
+  // Player movement state
+  const movement = usePlayerMovementGTA(playerRef, cameraRef);
+
   const [playerState, setPlayerState] = useState({
     position: [0, 0, 0] as [number, number, number],
     rotation: [0, 0, 0] as [number, number, number],
     isMoving: false,
   });
 
-  // Run movement hook AFTER refs exist
   useEffect(() => {
-    if (!playerRef.current || !cameraRef.current) return;
-
-    const unsub = usePlayerMovementGTA(playerRef, cameraRef, (state: any) => {
-      setPlayerState(state);
-    });
-
-    return () => unsub && unsub();
-  }, [playerRef, cameraRef]);
+    setPlayerState(movement);
+  }, [movement]);
 
   // Game State
   const [gameTime, setGameTime] = useState(8);
@@ -49,7 +44,7 @@ const Index = () => {
   const [energy, setEnergy] = useState(85);
   const [job, setJob] = useState("Explorer");
 
-  // Time System
+  // Time system
   useEffect(() => {
     if (isPaused) return;
     const interval = setInterval(() => {
@@ -114,7 +109,7 @@ const Index = () => {
         cameraRef={cameraRef}
         timeOfDay={gameTime}
         playerPosition={playerState.position}
-        playerRotation={playerState.rotation[1] ?? 0} // pass Y rotation (number)
+        playerRotation={playerState.rotation}  // <-- FIXED (array, not number)
         isMoving={playerState.isMoving}
         cameraOffset={cameraOrbit.offset}
         onBuildingClick={handleBuildingClick}
@@ -132,9 +127,5 @@ const Index = () => {
       />
 
       {/* Shop */}
-      {isShopOpen && <Shop money={money} onBuy={handleBuy} onClose={() => setIsShopOpen(false)} />}
-    </div>
-  );
-};
-
-export default Index;
+      {isShopOpen && (
+        <Shop money={money} onBuy={handleBuy} onClose={() => setIsSho
