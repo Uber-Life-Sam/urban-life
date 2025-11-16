@@ -72,19 +72,30 @@ const GameScene = ({
   const [trafficLightStates, setTrafficLightStates] = useState(trafficLights);
   const [npcPositions, setNpcPositions] = useState<Array<[number, number, number]>>([]);
   
-  // Traffic light cycle
+  // Traffic light cycle - coordinated for realistic traffic flow
   useEffect(() => {
     const interval = setInterval(() => {
       setTrafficLightStates((prev) => 
         prev.map((light) => {
           let newState: 'red' | 'yellow' | 'green';
-          if (light.state === 'green') newState = 'yellow';
-          else if (light.state === 'yellow') newState = 'red';
-          else newState = 'green';
+          
+          // North-South lights change together
+          // East-West lights change together (opposite to North-South)
+          if (light.direction === 'north-south') {
+            if (light.state === 'green') newState = 'yellow';
+            else if (light.state === 'yellow') newState = 'red';
+            else newState = 'green';
+          } else {
+            // East-West is opposite
+            if (light.state === 'green') newState = 'yellow';
+            else if (light.state === 'yellow') newState = 'red';
+            else newState = 'green';
+          }
+          
           return { ...light, state: newState };
         })
       );
-    }, 5000);
+    }, 4000); // Faster cycle for more dynamic traffic
     return () => clearInterval(interval);
   }, []);
   
@@ -165,17 +176,32 @@ const GameScene = ({
             />
           ))}
           
-          {/* Vehicles */}
+          {/* Vehicles - Multiple vehicles per path for realistic traffic */}
           {roadPaths.map((path, index) => {
             const light = trafficLightStates.find(l => l.id === path.trafficLightId);
-            const shouldStop = light?.state === 'red';
+            const shouldStop = light?.state === 'red' || light?.state === 'yellow';
+            const vehicleColors = [
+              ['#ff5555', '#cc3333', '#ff8888'],
+              ['#5555ff', '#3333cc', '#8888ff'],
+              ['#55ff55', '#33cc33', '#88ff88'],
+              ['#ffff55', '#cccc33', '#ffff88'],
+            ];
+            
             return (
-              <VehicleController
-                key={path.id}
-                path={path.waypoints}
-                color={['#ff5555', '#5555ff', '#55ff55', '#ffff55'][index % 4]}
-                shouldStop={shouldStop}
-              />
+              <>
+                <VehicleController
+                  key={`${path.id}-1`}
+                  path={path.waypoints}
+                  color={vehicleColors[index % 4][0]}
+                  shouldStop={shouldStop}
+                />
+                <VehicleController
+                  key={`${path.id}-2`}
+                  path={path.waypoints.map(wp => ({ x: wp.x, z: wp.z }))}
+                  color={vehicleColors[index % 4][1]}
+                  shouldStop={shouldStop}
+                />
+              </>
             );
           })}
           
