@@ -1,60 +1,56 @@
 import { useEffect, useRef } from "react";
+import * as THREE from "three";
 
-export default function usePlayerMovement() {
-  const position = useRef({ x: 0, y: 0, z: 0 });
-  const velocity = useRef({ x: 0, y: 0 });
-  const speed = 0.08;
+const usePlayerMovement = (playerRef: any, cameraRef: any) => {
+  const keys = useRef({ w: false, a: false, s: false, d: false });
+  const mouseDelta = useRef(0);
 
-  const keys = useRef({
-    forward: false,
-    backward: false,
-    left: false,
-    right: false,
-  });
+  // Mouse rotation (GTA-style camera orbit)
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (e.buttons === 1) {
+        mouseDelta.current -= e.movementX * 0.003;
+      }
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, []);
 
   // Keyboard controls
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if (e.key === "w") keys.current.forward = true;
-    if (e.key === "s") keys.current.backward = true;
-    if (e.key === "a") keys.current.left = true;
-    if (e.key === "d") keys.current.right = true;
-  };
-
-  const handleKeyUp = (e: KeyboardEvent) => {
-    if (e.key === "w") keys.current.forward = false;
-    if (e.key === "s") keys.current.backward = false;
-    if (e.key === "a") keys.current.left = false;
-    if (e.key === "d") keys.current.right = false;
-  };
-
-  // Update player movement
-  const updateMovement = () => {
-    let vx = 0;
-    let vy = 0;
-
-    if (keys.current.forward) vy -= speed;
-    if (keys.current.backward) vy += speed;
-    if (keys.current.left) vx -= speed;
-    if (keys.current.right) vx += speed;
-
-    velocity.current = { x: vx, y: vy };
-
-    position.current.x += vx;
-    position.current.y += vy;
-  };
-
   useEffect(() => {
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("keyup", handleKeyUp);
+    const down = (e: KeyboardEvent) => {
+      if (e.key === "w") keys.current.w = true;
+      if (e.key === "a") keys.current.a = true;
+      if (e.key === "s") keys.current.s = true;
+      if (e.key === "d") keys.current.d = true;
+    };
 
-    const interval = setInterval(updateMovement, 16); // 60fps
+    const up = (e: KeyboardEvent) => {
+      if (e.key === "w") keys.current.w = false;
+      if (e.key === "a") keys.current.a = false;
+      if (e.key === "s") keys.current.s = false;
+      if (e.key === "d") keys.current.d = false;
+    };
 
+    window.addEventListener("keydown", down);
+    window.addEventListener("keyup", up);
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("keyup", handleKeyUp);
-      clearInterval(interval);
+      window.removeEventListener("keydown", down);
+      window.removeEventListener("keyup", up);
     };
   }, []);
 
-  return position;
-}
+  // Movement loop
+  useEffect(() => {
+    const speed = 0.08; // walk speed
+    const rotationSpeed = 0.1;
+
+    const update = () => {
+      if (!playerRef.current || !cameraRef.current) {
+        requestAnimationFrame(update);
+        return;
+      }
+
+      const player = playerRef.current;
+      const cam = cameraRef.current;
