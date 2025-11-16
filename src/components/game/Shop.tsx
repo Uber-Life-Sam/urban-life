@@ -1,73 +1,39 @@
-import React, { useEffect, useState } from "react";
+// src/components/game/Shop.tsx
+import React from 'react';
+import { shopItems, ShopItem } from '@/data/shopItems';
+import { Button } from '@/components/ui/button';
 
-interface Item {
-  id: number;
-  name: string;
-  price: number;
-  icon?: string;
+interface ShopProps {
+  money: number;
+  onBuy: (itemId: string) => void;
+  onClose: () => void;
 }
 
-export default function Shop() {
-  const [items, setItems] = useState<Item[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  // 🔥 GitHub Raw JSON URL (اپنا URL یہاں لگائیں)
-  const itemsUrl =
-    "https://raw.githubusercontent.com/Uber-Life-Sam/urban-life/main/data/items.json";
-
-  useEffect(() => {
-    fetch(itemsUrl)
-      .then((res) => res.json())
-      .then((data) => {
-        setItems(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Error loading shop:", err);
-        setLoading(false);
-      });
-  }, []);
-
-  if (loading) {
-    return <div style={{ color: "white" }}>Loading Shop...</div>;
-  }
-
+const Shop = ({ money, onBuy, onClose }: ShopProps) => {
   return (
-    <div style={{ padding: 20 }}>
-      <h1 style={{ color: "white", fontSize: 30 }}>Shop</h1>
-
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {items.map((item) => (
-          <div
-            key={item.id}
-            style={{
-              background: "#222",
-              padding: 15,
-              borderRadius: 10,
-              color: "white",
-              display: "flex",
-              justifyContent: "space-between",
-            }}
-          >
-            <div>
-              <h3>{item.name}</h3>
-              <p>Price: {item.price}</p>
+    <div className="absolute top-8 right-8 z-60 w-96 bg-white/95 p-4 rounded-lg shadow-lg">  
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-lg font-bold">Shop</h3>
+        <button onClick={onClose} className="text-sm text-muted-foreground">Close</button>
+      </div>
+      <div className="space-y-3 max-h-80 overflow-auto">  
+        {shopItems.map((item: ShopItem) => (
+          <div key={item.id} className="flex items-center justify-between p-2 bg-background/60 rounded">  
+            <div className="flex-1 pr-3">
+              <div className="font-medium">{item.name}</div>
+              <div className="text-sm text-muted-foreground">{item.description}</div>
             </div>
-
-            <button
-              style={{
-                background: "lime",
-                padding: "8px 15px",
-                borderRadius: 6,
-                border: "none",
-                cursor: "pointer",
-              }}
-            >
-              Buy
-            </button>
+            <div className="flex flex-col items-end space-y-2">
+              <div className="font-semibold">${item.price}</div>
+              <Button size="sm" disabled={money < item.price} onClick={() => onBuy(item.id)}>
+                Buy
+              </Button>
+            </div>
           </div>
         ))}
       </div>
     </div>
   );
-}
+};
+
+export default Shop;
