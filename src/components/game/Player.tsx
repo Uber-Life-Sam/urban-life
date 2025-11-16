@@ -1,5 +1,5 @@
 // src/components/game/Player.tsx
-import React, { forwardRef, useRef } from "react";
+import React, { forwardRef, useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Group } from "three";
 
@@ -15,6 +15,17 @@ const Player = forwardRef<Group, PlayerProps>(({ position = [0, 0, 0], rotation 
   const rightLegRef = useRef<Group | null>(null);
   const leftArmRef = useRef<Group | null>(null);
   const rightArmRef = useRef<Group | null>(null);
+
+  // Set initial position only once (or when explicit position prop changes)
+  useEffect(() => {
+    if (!ref) return;
+    const r = (ref as any).current;
+    if (r && Array.isArray(position)) {
+      // set world position once
+      r.position.set(position[0], position[1], position[2]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // run once on mount
 
   useFrame((state) => {
     const time = state.clock.elapsedTime;
@@ -45,9 +56,10 @@ const Player = forwardRef<Group, PlayerProps>(({ position = [0, 0, 0], rotation 
     }
   });
 
+  // Note: we DO NOT bind `position` directly on the group prop,
+  // because movement hook will control playerRef.current.position.
   return (
-    // forwarded ref applied to top-level group
-    <group ref={ref} position={position} rotation={[0, rotation, 0]}>
+    <group ref={ref} rotation={[0, rotation, 0]}>
       <group ref={bodyRef}>
         <mesh position={[0, 0.9, 0]} castShadow>
           <boxGeometry args={[0.5, 0.7, 0.3]} />
