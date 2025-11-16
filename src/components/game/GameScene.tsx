@@ -24,6 +24,9 @@ interface GameSceneProps {
   cameraOffset: [number, number, number];
   onBuildingClick: (building: Building) => void;
   onNPCPositionsUpdate: (positions: Array<[number, number, number]>) => void;
+
+  playerRef: any;   // 🔥 add this
+  cameraRef: any;   // 🔥 add this
 }
 
 const NPCController = ({ 
@@ -59,14 +62,17 @@ const VehicleController = ({
   return <Vehicle position={position} rotation={rotation} color={color} />;
 };
 
-const GameScene = ({ 
-  timeOfDay, 
-  playerPosition, 
-  playerRotation, 
+const GameScene = ({
+  timeOfDay,
+  playerPosition,
+  playerRotation,
   isMoving,
   cameraOffset,
   onBuildingClick,
-  onNPCPositionsUpdate 
+  onNPCPositionsUpdate,
+
+  playerRef,   // 🔥 added
+  cameraRef    // 🔥 added
 }: GameSceneProps) => {
   // Enhanced day/night calculation with transition periods
   const isNight = timeOfDay < 6 || timeOfDay > 19;
@@ -201,7 +207,12 @@ const GameScene = ({
           <PlayerLand position={[0, 0, -30]} />
           <PlayerHouse position={[0, 0, -30]} />
           
-          <Player position={playerPosition} rotation={playerRotation} isMoving={isMoving} />
+          <Player
+  ref={playerRef}
+  position={playerPosition}
+  rotation={playerRotation}
+  isMoving={isMoving}
+/>
           
           {/* Clickable Buildings */}
           {buildings.map((building) => (
@@ -261,7 +272,11 @@ const GameScene = ({
             );
           })}
           
-          <CameraController target={playerPosition} offset={cameraOffset} />
+          <CameraController
+  ref={cameraRef}
+  target={playerPosition}
+  offset={cameraOffset}
+/>
         </Suspense>
       </Canvas>
     </div>
