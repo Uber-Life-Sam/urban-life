@@ -1,7 +1,12 @@
 import { useRef } from 'react';
 import { Mesh } from 'three';
 
-const CityEnvironment = () => {
+interface CityEnvironmentProps {
+  timeOfDay: number;
+  isNight: boolean;
+}
+
+const CityEnvironment = ({ timeOfDay, isNight }: CityEnvironmentProps) => {
   return (
     <group>
       {/* Ground */}
@@ -67,42 +72,42 @@ const CityEnvironment = () => {
       <Sidewalk position={[0, 0.05, 3]} rotation={Math.PI / 2} length={50} />
 
       {/* Buildings - Residential District */}
-      <Building position={[-8, 0, -8]} size={[3, 6, 3]} color="#5a6c7a" />
-      <Building position={[-8, 0, -15]} size={[3, 8, 3]} color="#4a5c6a" />
-      <Building position={[-15, 0, -8]} size={[4, 5, 4]} color="#6a7c8a" />
-      <Building position={[-15, 0, -15]} size={[3, 7, 3]} color="#5a6c7a" />
+      <Building position={[-8, 0, -8]} size={[3, 6, 3]} color="#5a6c7a" isNight={isNight} />
+      <Building position={[-8, 0, -15]} size={[3, 8, 3]} color="#4a5c6a" isNight={isNight} />
+      <Building position={[-15, 0, -8]} size={[4, 5, 4]} color="#6a7c8a" isNight={isNight} />
+      <Building position={[-15, 0, -15]} size={[3, 7, 3]} color="#5a6c7a" isNight={isNight} />
 
       {/* Buildings - Commercial District */}
-      <Building position={[8, 0, -8]} size={[4, 10, 4]} color="#7a6c5a" windows />
-      <Building position={[8, 0, -15]} size={[3, 12, 3]} color="#8a7c6a" windows />
-      <Building position={[15, 0, -8]} size={[5, 8, 5]} color="#6a5c4a" windows />
-      <Building position={[15, 0, -15]} size={[4, 9, 4]} color="#7a6c5a" windows />
+      <Building position={[8, 0, -8]} size={[4, 10, 4]} color="#7a6c5a" windows isNight={isNight} />
+      <Building position={[8, 0, -15]} size={[3, 12, 3]} color="#8a7c6a" windows isNight={isNight} />
+      <Building position={[15, 0, -8]} size={[5, 8, 5]} color="#6a5c4a" windows isNight={isNight} />
+      <Building position={[15, 0, -15]} size={[4, 9, 4]} color="#7a6c5a" windows isNight={isNight} />
 
       {/* Buildings - Industrial District */}
-      <Building position={[-8, 0, 8]} size={[6, 4, 4]} color="#6a6a6a" />
-      <Building position={[-15, 0, 8]} size={[5, 3, 6]} color="#5a5a5a" />
-      <Building position={[-8, 0, 15]} size={[4, 5, 5]} color="#7a7a7a" />
+      <Building position={[-8, 0, 8]} size={[6, 4, 4]} color="#6a6a6a" isNight={isNight} />
+      <Building position={[-15, 0, 8]} size={[5, 3, 6]} color="#5a5a5a" isNight={isNight} />
+      <Building position={[-8, 0, 15]} size={[4, 5, 5]} color="#7a7a7a" isNight={isNight} />
 
       {/* Buildings - Mixed Use */}
-      <Building position={[8, 0, 8]} size={[3, 7, 3]} color="#8a7c8a" windows />
-      <Building position={[15, 0, 8]} size={[4, 6, 4]} color="#7a6c7a" />
-      <Building position={[8, 0, 15]} size={[3, 8, 3]} color="#6a5c6a" windows />
+      <Building position={[8, 0, 8]} size={[3, 7, 3]} color="#8a7c8a" windows isNight={isNight} />
+      <Building position={[15, 0, 8]} size={[4, 6, 4]} color="#7a6c7a" isNight={isNight} />
+      <Building position={[8, 0, 15]} size={[3, 8, 3]} color="#6a5c6a" windows isNight={isNight} />
 
       {/* Street Lights at intersection corners */}
-      <StreetLight position={[2.5, 0, -2.5]} />
-      <StreetLight position={[-2.5, 0, -2.5]} />
-      <StreetLight position={[2.5, 0, 2.5]} />
-      <StreetLight position={[-2.5, 0, 2.5]} />
+      <StreetLight position={[2.5, 0, -2.5]} isOn={isNight} />
+      <StreetLight position={[-2.5, 0, -2.5]} isOn={isNight} />
+      <StreetLight position={[2.5, 0, 2.5]} isOn={isNight} />
+      <StreetLight position={[-2.5, 0, 2.5]} isOn={isNight} />
       
       {/* Street Lights along roads */}
-      <StreetLight position={[3.5, 0, -10]} />
-      <StreetLight position={[3.5, 0, 10]} />
-      <StreetLight position={[-3.5, 0, -10]} />
-      <StreetLight position={[-3.5, 0, 10]} />
-      <StreetLight position={[10, 0, 3.5]} />
-      <StreetLight position={[-10, 0, 3.5]} />
-      <StreetLight position={[10, 0, -3.5]} />
-      <StreetLight position={[-10, 0, -3.5]} />
+      <StreetLight position={[3.5, 0, -10]} isOn={isNight} />
+      <StreetLight position={[3.5, 0, 10]} isOn={isNight} />
+      <StreetLight position={[-3.5, 0, -10]} isOn={isNight} />
+      <StreetLight position={[-3.5, 0, 10]} isOn={isNight} />
+      <StreetLight position={[10, 0, 3.5]} isOn={isNight} />
+      <StreetLight position={[-10, 0, 3.5]} isOn={isNight} />
+      <StreetLight position={[10, 0, -3.5]} isOn={isNight} />
+      <StreetLight position={[-10, 0, -3.5]} isOn={isNight} />
       
       {/* Trees along sidewalks */}
       <Tree position={[-5, 0, -10]} />
@@ -132,10 +137,15 @@ interface BuildingProps {
   size: [number, number, number];
   color: string;
   windows?: boolean;
+  isNight: boolean;
 }
 
-const Building = ({ position, size, color, windows }: BuildingProps) => {
+const Building = ({ position, size, color, windows, isNight }: BuildingProps) => {
   const meshRef = useRef<Mesh>(null);
+  
+  // Calculate window glow intensity based on time
+  const windowGlow = isNight ? 1 : 0.1;
+  const windowColor = isNight ? "#ffeb99" : "#8a8a8a";
   
   return (
     <group position={position}>
@@ -155,12 +165,37 @@ const Building = ({ position, size, color, windows }: BuildingProps) => {
             <group key={i}>
               <mesh position={[size[0] / 2 + 0.01, i * 2 + 1, 0]}>
                 <planeGeometry args={[0.5, 0.5]} />
-                <meshBasicMaterial color="#ffeb99" />
+                <meshStandardMaterial 
+                  color={windowColor}
+                  emissive={windowColor}
+                  emissiveIntensity={windowGlow}
+                />
               </mesh>
               <mesh position={[-size[0] / 2 - 0.01, i * 2 + 1, 0]} rotation={[0, Math.PI, 0]}>
                 <planeGeometry args={[0.5, 0.5]} />
-                <meshBasicMaterial color="#ffeb99" />
+                <meshStandardMaterial 
+                  color={windowColor}
+                  emissive={windowColor}
+                  emissiveIntensity={windowGlow}
+                />
               </mesh>
+              {/* Window glow point lights at night */}
+              {isNight && (
+                <>
+                  <pointLight 
+                    position={[size[0] / 2 + 0.5, i * 2 + 1, 0]} 
+                    color="#ffeb99" 
+                    intensity={0.5} 
+                    distance={2} 
+                  />
+                  <pointLight 
+                    position={[-size[0] / 2 - 0.5, i * 2 + 1, 0]} 
+                    color="#ffeb99" 
+                    intensity={0.5} 
+                    distance={2} 
+                  />
+                </>
+              )}
             </group>
           ))}
         </>
@@ -190,7 +225,11 @@ const Tree = ({ position }: { position: [number, number, number] }) => {
   );
 };
 
-const StreetLight = ({ position }: { position: [number, number, number] }) => {
+const StreetLight = ({ position, isOn }: { position: [number, number, number], isOn: boolean }) => {
+  const lightIntensity = isOn ? 2.5 : 0;
+  const emissiveIntensity = isOn ? 1 : 0;
+  const lightColor = isOn ? "#ffd700" : "#1a1a1a";
+  
   return (
     <group position={position}>
       {/* Pole */}
@@ -201,10 +240,22 @@ const StreetLight = ({ position }: { position: [number, number, number] }) => {
       {/* Light fixture */}
       <mesh position={[0, 5, 0]}>
         <sphereGeometry args={[0.3, 16, 16]} />
-        <meshStandardMaterial color="#f39c12" emissive="#f39c12" emissiveIntensity={0.5} />
+        <meshStandardMaterial 
+          color={lightColor}
+          emissive={lightColor}
+          emissiveIntensity={emissiveIntensity}
+        />
       </mesh>
-      {/* Light emission */}
-      <pointLight position={[0, 5, 0]} color="#ffd700" intensity={2} distance={10} castShadow />
+      {/* Light emission - only at night */}
+      {isOn && (
+        <pointLight 
+          position={[0, 5, 0]} 
+          color="#ffd700" 
+          intensity={lightIntensity} 
+          distance={12} 
+          castShadow 
+        />
+      )}
     </group>
   );
 };

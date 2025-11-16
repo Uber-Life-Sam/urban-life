@@ -68,9 +68,48 @@ const GameScene = ({
   onBuildingClick,
   onNPCPositionsUpdate 
 }: GameSceneProps) => {
-  const isNight = timeOfDay < 6 || timeOfDay > 18;
+  // Enhanced day/night calculation with transition periods
+  const isNight = timeOfDay < 6 || timeOfDay > 19;
+  const isDawn = timeOfDay >= 5 && timeOfDay < 7;
+  const isDusk = timeOfDay >= 18 && timeOfDay < 20;
+  const isTransition = isDawn || isDusk;
+  
   const [trafficLightStates, setTrafficLightStates] = useState(trafficLights);
   const [npcPositions, setNpcPositions] = useState<Array<[number, number, number]>>([]);
+  
+  // Calculate dynamic lighting values based on time
+  const getLightingValues = () => {
+    const hour = timeOfDay;
+    let ambientIntensity = 0.6;
+    let directionalIntensity = 1;
+    
+    // Night (0-5, 20-24)
+    if (hour < 5 || hour >= 20) {
+      ambientIntensity = 0.15;
+      directionalIntensity = 0.1;
+    }
+    // Dawn (5-7)
+    else if (hour >= 5 && hour < 7) {
+      const progress = (hour - 5) / 2;
+      ambientIntensity = 0.15 + (0.45 * progress);
+      directionalIntensity = 0.1 + (0.9 * progress);
+    }
+    // Day (7-18)
+    else if (hour >= 7 && hour < 18) {
+      ambientIntensity = 0.6;
+      directionalIntensity = 1;
+    }
+    // Dusk (18-20)
+    else if (hour >= 18 && hour < 20) {
+      const progress = (hour - 18) / 2;
+      ambientIntensity = 0.6 - (0.45 * progress);
+      directionalIntensity = 1 - (0.9 * progress);
+    }
+    
+    return { ambientIntensity, directionalIntensity };
+  };
+  
+  const { ambientIntensity, directionalIntensity } = getLightingValues();
   
   // Traffic light cycle - coordinated for realistic traffic flow
   useEffect(() => {
@@ -130,16 +169,33 @@ const GameScene = ({
             azimuth={0.25}
           />
           
-          <ambientLight intensity={isNight ? 0.2 : 0.6} />
+          {/* Dynamic ambient light */}
+          <ambientLight intensity={ambientIntensity} />
+          
+          {/* Dynamic directional light (sun/moon) */}
           <directionalLight
-            position={[10, 20, 10]}
-            intensity={isNight ? 0.3 : 1}
+            position={[
+              Math.cos((timeOfDay / 24) * Math.PI * 2) * 20,
+              Math.sin((timeOfDay / 24) * Math.PI * 2) * 20 + 5,
+              10
+            ]}
+            intensity={directionalIntensity}
+            color={isNight ? '#b8c5d6' : '#ffffff'}
             castShadow
             shadow-mapSize-width={2048}
             shadow-mapSize-height={2048}
           />
           
-          <CityEnvironment />
+          {/* Night ambient glow */}
+          {isNight && (
+            <hemisphereLight
+              color="#4a5f8a"
+              groundColor="#1a1a2e"
+              intensity={0.2}
+            />
+          )}
+          
+          <CityEnvironment timeOfDay={timeOfDay} isNight={isNight} />
           
           {/* Player's Land and House */}
           <PlayerLand position={[0, 0, -30]} />
