@@ -211,7 +211,12 @@ const GameScene = ({
 
           {/* CameraController sets cameraRef.current internally */}
           <PerspectiveCamera makeDefault position={[10, 8, 10]} />
-          <CameraController ref={cameraRef} target={playerPosition} offset={cameraOffset} followRotation={playerRotation} />
+          <CameraController 
+   ref={cameraRef} 
+   target={playerPosition} 
+   offset={cameraOffset} 
+   followRotation={playerRotation} 
+/>
         </Suspense>
       </Canvas>
     </div>
