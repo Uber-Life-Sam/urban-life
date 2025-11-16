@@ -128,4 +128,10 @@ const Index = () => {
 
       {/* Shop */}
       {isShopOpen && (
-        <Shop money={money} onBuy={handleBuy} onClose={() => setIsSho
+        <Shop money={money} onBuy={handleBuy} onClose={() => setIsShopOpen(false)} />
+      )}
+    </div>
+  );
+};
+
+export default Index;
