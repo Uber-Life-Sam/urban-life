@@ -17,25 +17,39 @@ import { Building } from "@/data/buildings";
 import { shopItems } from "@/data/shopItems";
 
 const Index = () => {
-  // Refs
+  // Refs — یہ React refs ہیں جو 3D groups / camera رکھیں گے
   const playerRef = useRef<any>(null);
   const cameraRef = useRef<any>(null);
 
-  // Camera Orbit
+  // Camera orbit hook
   const cameraOrbit = useCameraOrbit(8, Math.PI / 4);
 
-  // Player movement state
+  // movement hook returns { position, rotation, isMoving }
   const movement = usePlayerMovementGTA(playerRef, cameraRef);
 
+  // Local state mirror (ایسا رکھ لیا تاکہ render بہتر کنٹرول ہو)
   const [playerState, setPlayerState] = useState({
-    position: [0, 0, 0] as [number, number, number],
+    position: [0, 1, 0] as [number, number, number],
     rotation: [0, 0, 0] as [number, number, number],
     isMoving: false,
   });
 
+  // جب movement بدلے تو state update کریں
   useEffect(() => {
-    setPlayerState(movement);
-  }, [movement]);
+    if (!movement) return;
+    // safety: اگر movement کوئی غیر متوقع shape دے تو console میں دیکھیں
+    console.log("movement (from hook) =", movement);
+    // اگر movement null یا غلط ہے تو ignore نہ کریں، fallback دیں
+    const safePos = Array.isArray(movement.position) ? movement.position : playerState.position;
+    const safeRot = Array.isArray(movement.rotation) ? movement.rotation : playerState.rotation;
+    const safeMoving = typeof movement.isMoving === "boolean" ? movement.isMoving : playerState.isMoving;
+
+    setPlayerState({
+      position: safePos as [number, number, number],
+      rotation: safeRot as [number, number, number],
+      isMoving: safeMoving,
+    });
+  }, [movement]); // movement hook جو object return کرتا ہے
 
   // Game State
   const [gameTime, setGameTime] = useState(8);
@@ -44,7 +58,7 @@ const Index = () => {
   const [energy, setEnergy] = useState(85);
   const [job, setJob] = useState("Explorer");
 
-  // Time system
+  // Time loop
   useEffect(() => {
     if (isPaused) return;
     const interval = setInterval(() => {
@@ -53,7 +67,7 @@ const Index = () => {
     return () => clearInterval(interval);
   }, [isPaused]);
 
-  // Shop System
+  // Shop
   const [isShopOpen, setIsShopOpen] = useState(false);
   const [inventory, setInventory] = useState<string[]>([]);
   const [inventorySize, setInventorySize] = useState(10);
@@ -62,13 +76,11 @@ const Index = () => {
   const handleBuy = (itemId: string) => {
     const item = shopItems.find((i) => i.id === itemId);
     if (!item || money < item.price) return;
-
     setMoney((m) => m - item.price);
 
     if (item.type === "food" && item.effect?.energy) {
       setEnergy((e) => Math.min(100, e + item.effect.energy));
     }
-
     if (item.type === "upgrade") {
       if (item.effect?.inventorySizeIncrease) {
         setInventorySize((s) => s + item.effect.inventorySizeIncrease);
@@ -77,7 +89,6 @@ const Index = () => {
         setSpeedMultiplier((v) => v * item.effect.speedMultiplier);
       }
     }
-
     if (item.type === "item") {
       if (inventory.length < inventorySize) {
         setInventory((inv) => [...inv, item.id]);
@@ -89,27 +100,28 @@ const Index = () => {
     setJob("Explorer");
   };
 
+  // Render
   return (
     <div className="relative w-full h-screen overflow-hidden bg-background">
-      {/* Pause Button */}
+      {/* Pause */}
       <div className="absolute top-4 right-4 z-50">
         <Button onClick={() => setIsPaused(!isPaused)} variant="secondary">
           {isPaused ? <Play /> : <Pause />}
         </Button>
       </div>
 
-      {/* Shop Button */}
+      {/* Shop */}
       <div className="absolute top-4 left-4 z-50">
         <Button onClick={() => setIsShopOpen((s) => !s)}>Shop - ${money}</Button>
       </div>
 
-      {/* Game Scene */}
+      {/* Game Scene — <-- نوٹ: rotation ہم number پاس کریں گے */}
       <GameScene
         playerRef={playerRef}
         cameraRef={cameraRef}
         timeOfDay={gameTime}
         playerPosition={playerState.position}
-        playerRotation={playerState.rotation[1]}  // <-- FIXED (array, not number)
+        playerRotation={playerState.rotation[1] ?? 0}   // Y rotation (number)
         isMoving={playerState.isMoving}
         cameraOffset={cameraOrbit.offset}
         onBuildingClick={handleBuildingClick}
@@ -126,10 +138,8 @@ const Index = () => {
         job={job}
       />
 
-      {/* Shop */}
-      {isShopOpen && (
-        <Shop money={money} onBuy={handleBuy} onClose={() => setIsShopOpen(false)} />
-      )}
+      {/* Shop modal */}
+      {isShopOpen && <Shop money={money} onBuy={handleBuy} onClose={() => setIsShopOpen(false)} />}
     </div>
   );
 };
