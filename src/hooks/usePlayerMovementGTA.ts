@@ -10,42 +10,43 @@ export default function usePlayerMovementGTA(playerRef, cameraRef) {
   });
 
   useEffect(() => {
-    // GLOBAL keystates
     window.keys = { w: false, a: false, s: false, d: false };
 
-    const handleKeyDown = (e) => {
+    const handleDown = (e) => {
       if (e.key in window.keys) window.keys[e.key] = true;
     };
 
-    const handleKeyUp = (e) => {
+    const handleUp = (e) => {
       if (e.key in window.keys) window.keys[e.key] = false;
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("keyup", handleKeyUp);
+    window.addEventListener("keydown", handleDown);
+    window.addEventListener("keyup", handleUp);
 
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("keyup", handleKeyUp);
+      window.removeEventListener("keydown", handleDown);
+      window.removeEventListener("keyup", handleUp);
     };
   }, []);
 
   useEffect(() => {
     if (!playerRef.current || !cameraRef.current) return;
 
-    const speed = 0.08;
+    const speed = 0.1;
 
-    const movePlayer = () => {
+    const move = () => {
       const cam = cameraRef.current;
       const player = playerRef.current;
 
+      // FORWARD VECTOR
       const forward = new THREE.Vector3();
       cam.getWorldDirection(forward);
       forward.y = 0;
       forward.normalize();
 
+      // RIGHT VECTOR (CORRECT DIRECTION)
       const right = new THREE.Vector3();
-      right.crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
+      right.crossVectors(new THREE.Vector3(0, 1, 0), forward).normalize();
 
       let moved = false;
       const movement = new THREE.Vector3();
@@ -59,34 +60,35 @@ export default function usePlayerMovementGTA(playerRef, cameraRef) {
         moved = true;
       }
       if (window.keys.a) {
-        movement.add(right.clone().multiplyScalar(speed));
+        movement.add(right.clone().multiplyScalar(-speed));
         moved = true;
       }
       if (window.keys.d) {
-        movement.add(right.clone().multiplyScalar(-speed));
+        movement.add(right.clone().multiplyScalar(speed));
         moved = true;
       }
 
       if (moved) {
+        // apply movement
         player.position.add(movement);
 
+        // rotation based on movement direction
         const rotY = Math.atan2(movement.x, movement.z);
-
         player.rotation.y = rotY;
 
         setPlayerState({
           position: [player.position.x, player.position.y, player.position.z],
           rotation: [0, rotY, 0],
-          isMoving: true
+          isMoving: true,
         });
       } else {
         setPlayerState((prev) => ({ ...prev, isMoving: false }));
       }
 
-      requestAnimationFrame(movePlayer);
+      requestAnimationFrame(move);
     };
 
-    movePlayer();
+    move();
   }, [playerRef, cameraRef]);
 
   return playerState;
