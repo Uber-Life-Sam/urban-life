@@ -109,7 +109,7 @@ const Index = () => {
         cameraRef={cameraRef}
         timeOfDay={gameTime}
         playerPosition={playerState.position}
-        playerRotation={playerState.rotation}  // <-- FIXED (array, not number)
+        playerRotation={playerState.rotation[1]}  // <-- FIXED (array, not number)
         isMoving={playerState.isMoving}
         cameraOffset={cameraOrbit.offset}
         onBuildingClick={handleBuildingClick}
