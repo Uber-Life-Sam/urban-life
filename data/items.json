@@ -9,4 +9,22 @@
     "name": "Energy Drink",
     "price": 30
   }
+  {
+    "id": 1,
+    "name": "Health Kit",
+    "price": 50,
+    "icon": "icons/health.png"
+  },
+  {
+    "id": 2,
+    "name": "Energy Drink",
+    "price": 30,
+    "icon": "icons/energy.png"
+  },
+  {
+    "id": 3,
+    "name": "Gun Ammo",
+    "price": 100,
+    "icon": "icons/ammo.png"
+  }
 ]
