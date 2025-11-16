@@ -42,7 +42,7 @@ export default function usePlayerMovementGTA(playerRef: any, cameraRef: any) {
   }, []);
 
   useEffect(() => {
-    const speed = 0.12; // movement speed per frame step (tweakable)
+    const speed = 0.06; // movement speed per frame step (tweakable)
     const friction = 0.92; // smoothing for camera/player velocity
 
     const velocity = new THREE.Vector3(0, 0, 0);
