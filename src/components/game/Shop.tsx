@@ -13,7 +13,7 @@ export default function Shop() {
 
   // 🔥 GitHub Raw JSON URL (اپنا URL یہاں لگائیں)
   const itemsUrl =
-    "https://raw.githubusercontent.com/YOUR-USERNAME/YOUR-REPO/main/data/items.json";
+    "https://raw.githubusercontent.com/Uber-Life-Sam/urban-life/main/data/items.json";
 
   useEffect(() => {
     fetch(itemsUrl)
