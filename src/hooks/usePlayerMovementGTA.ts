@@ -2,7 +2,6 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 
 export default function usePlayerMovementGTA(playerRef, cameraRef) {
-  const velocity = useRef({ x: 0, y: 0, z: 0 });
   const speed = 0.08;
   const rotationSmooth = 0.15;
 
@@ -13,7 +12,7 @@ export default function usePlayerMovementGTA(playerRef, cameraRef) {
     d: false,
   });
 
-  // ---- KEYBOARD EVENTS ----
+  // ---- KEY HANDLING ----
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (keys.current[e.key] !== undefined) keys.current[e.key] = true;
@@ -24,6 +23,7 @@ export default function usePlayerMovementGTA(playerRef, cameraRef) {
 
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
+
     return () => {
       window.removeEventListener("keydown", down);
       window.removeEventListener("keyup", up);
@@ -33,7 +33,10 @@ export default function usePlayerMovementGTA(playerRef, cameraRef) {
   // ---- MOVEMENT LOOP ----
   useEffect(() => {
     const move = () => {
-      if (!playerRef.current || !cameraRef.current) {
+      // -----------------------------
+      // FIX 1: HARD NULL CHECK (Crash Stopper)
+      // -----------------------------
+      if (!playerRef?.current || !cameraRef?.current) {
         requestAnimationFrame(move);
         return;
       }
@@ -41,6 +44,12 @@ export default function usePlayerMovementGTA(playerRef, cameraRef) {
       const player = playerRef.current;
       const camera = cameraRef.current;
 
+      if (!player.position) {
+        requestAnimationFrame(move);
+        return;
+      }
+
+      // Camera directions
       const forward = new THREE.Vector3();
       const right = new THREE.Vector3();
 
@@ -50,6 +59,7 @@ export default function usePlayerMovementGTA(playerRef, cameraRef) {
 
       right.crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
 
+      // Movement vector
       let moveDir = new THREE.Vector3();
 
       if (keys.current.w) moveDir.add(forward);
