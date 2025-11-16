@@ -11,7 +11,19 @@ import VirtualJoystick from '@/components/game/VirtualJoystick';
 import InteriorScene from '@/components/game/InteriorScene';
 import JobUI from '@/components/game/JobUI';
 import { usePlayerMovementGTA } from '@/hooks/usePlayerMovementGTA';
+
+<mesh ref={playerRef} position={[0, 1, 0]}>
+    <boxGeometry args={[1, 2, 1]} />
+    <meshStandardMaterial color="red" />
+</mesh>
+
 import { useCameraOrbit } from '@/hooks/useCameraOrbit';
+
+<PerspectiveCamera
+  ref={cameraRef}
+  makeDefault
+  position={[0, 5, 10]}
+/>
 import { useCollisionDetection } from '@/hooks/useCollisionDetection';
 import { Button } from '@/components/ui/button';
 import { Play, Pause } from 'lucide-react';
