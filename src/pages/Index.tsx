@@ -1,5 +1,5 @@
 // src/pages/Index.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import GameScene from '@/components/game/GameScene';
 import GameHUD from '@/components/game/GameHUD';
 import VirtualJoystick from '@/components/game/VirtualJoystick';
@@ -24,6 +24,20 @@ const Index = () => {
   const [job, setJob] = useState('Explorer');
   const [currentJob, setCurrentJob] = useState<string | null>(null);
   const [currentJobPayRate, setCurrentJobPayRate] = useState(0);
+
+  // Dynamic time progression - 1 game hour = 2 real minutes (30x speed)
+  useEffect(() => {
+    if (isPaused) return;
+    
+    const interval = setInterval(() => {
+      setGameTime((prevTime) => {
+        const newTime = prevTime + 0.01; // Increment by 0.01 hours (~36 seconds in game)
+        return newTime >= 24 ? 0 : newTime; // Reset at midnight
+      });
+    }, 20); // Update every 20ms for smooth transitions
+
+    return () => clearInterval(interval);
+  }, [isPaused]);
 
   // Camera orbit control
   const cameraOrbit = useCameraOrbit(8, Math.PI / 4);
@@ -79,21 +93,16 @@ const Index = () => {
 
   return (
     <div className="relative w-full h-screen overflow-hidden bg-background">
-      {/* Welcome overlay */}
-      {gameTime < 8.1 && (
-        <div className="absolute inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center animate-fade-out">
-          <div className="text-center space-y-4 px-4">
-            <h1 className="text-4xl md:text-6xl font-bold text-primary">SimCraft</h1>
-            <p className="text-xl text-muted-foreground">Urban Life Simulator</p>
-            <div className="text-sm text-muted-foreground max-w-md space-y-2">
-              <p className="font-semibold text-foreground">Controls:</p>
-              <p><span className="text-primary font-medium">WASD</span> - Move around</p>
-              <p><span className="text-primary font-medium">Right Mouse + Drag</span> - Rotate camera</p>
-              <p><span className="text-primary font-medium">Mouse Wheel</span> - Zoom in/out</p>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Time control */}
+      <div className="absolute top-4 right-4 z-50 flex gap-2">
+        <Button 
+          onClick={() => setIsPaused(!isPaused)}
+          variant="secondary"
+          size="sm"
+        >
+          {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+        </Button>
+      </div>
 
       {/* Shop button */}
       <div className="absolute top-4 left-4 z-50">
@@ -115,7 +124,7 @@ const Index = () => {
 
       {/* HUD and overlays */}
       <GameHUD 
-        time={`${Math.floor(gameTime)}:${String(Math.floor((gameTime % 1) * 60)).padStart(2, '0')}`}
+        time={`${String(Math.floor(gameTime)).padStart(2, '0')}:${String(Math.floor((gameTime % 1) * 60)).padStart(2, '0')}`}
         money={money} 
         energy={energy} 
         job={job}
