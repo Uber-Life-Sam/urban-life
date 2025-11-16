@@ -3,8 +3,6 @@ import { Canvas } from "@react-three/fiber";
 import { Sky, PerspectiveCamera } from "@react-three/drei";
 import { Suspense, useState, useEffect } from "react";
 import CityEnvironment from "./CityEnvironment";
-import { useRef } from "react";
-import usePlayerMovementGTA from "@/hooks/usePlayerMovementGTA";
 import Player from "./Player";
 import CameraController from "./CameraController";
 import NPC from "./NPC";
@@ -19,20 +17,18 @@ import { npcRoutines, NPC_COLORS } from "@/data/npcRoutines";
 import { buildings, Building } from "@/data/buildings";
 import { trafficLights, roadPaths } from "@/data/roadNetwork";
 
-
-
 interface GameSceneProps {
   timeOfDay: number;
-  playerPosition: [1, 1, 1];
+  playerPosition: [number, number, number];
   playerRotation: number; // Y rotation in radians (number)
   isMoving: boolean;
-  cameraOffset: [0, 0, 1];
+  cameraOffset: [number, number, number];
   onBuildingClick: (building: Building) => void;
   onNPCPositionsUpdate: (positions: Array<[number, number, number]>) => void;
-  
-export default function GameScene() {
-  const playerRef = useRef();
-  const cameraRef = useRef();
+
+  playerRef: any;
+  cameraRef: any;
+}
 
 const NPCController = ({
   routine,
@@ -172,11 +168,7 @@ const GameScene = ({
           <PlayerHouse position={[0, 0, -30]} />
 
           {/* Player with ref */}
-          <Player
-        ref={playerRef}
-        rotation={movement.rotation}
-        isMoving={movement.isMoving}
-      />
+          <Player ref={playerRef} /* position removed, ref will control position */ rotation={playerRotation} isMoving={isMoving} />
 
           {/* Clickable Buildings */}
           {buildings.map((building) => (
@@ -219,12 +211,12 @@ const GameScene = ({
 
           {/* CameraController sets cameraRef.current internally */}
           <PerspectiveCamera makeDefault position={[10, 8, 10]} />
-          <CameraController
-        ref={cameraRef}
-        target={movement.position}
-        offset={[0, 3, -6]}  // GTA camera offset
-        followRotation={movement.rotation}
-      />
+          <CameraController 
+   ref={cameraRef} 
+   target={playerPosition} 
+   offset={cameraOffset} 
+   followRotation={playerRotation} 
+/>
         </Suspense>
       </Canvas>
     </div>
