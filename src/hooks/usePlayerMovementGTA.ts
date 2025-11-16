@@ -1,30 +1,25 @@
-import { useEffect, useRef } from "react";
-import * as THREE from "three";
+import { useEffect, useRef } from 'react';
 
-/**
- * GTA Style Movement + Camera Orbit
- * Works with playerRef + cameraRef
- */
-export const usePlayerMovementGTA = (playerRef: any, cameraRef: any) => {
-  const keys = useRef({ w: false, a: false, s: false, d: false });
-  const cameraAngle = useRef(0);
+export default function usePlayerMovementGTA(playerRef, cameraRef) {
+  const velocity = useRef({ x: 0, y: 0, z: 0 });
+  const speed = 0.08;
+  const rotationSmooth = 0.15;
 
-  // ===============================
-  // 🎮 Keyboard Controls
-  // ===============================
+  const keys = useRef({
+    w: false,
+    s: false,
+    a: false,
+    d: false,
+  });
+
+  // Key Events
   useEffect(() => {
-    const down = (e: KeyboardEvent) => {
-      if (e.key === "w") keys.current.w = true;
-      if (e.key === "a") keys.current.a = true;
-      if (e.key === "s") keys.current.s = true;
-      if (e.key === "d") keys.current.d = true;
+    const down = (e) => {
+      if (keys.current[e.key] !== undefined) keys.current[e.key] = true;
     };
 
-    const up = (e: KeyboardEvent) => {
-      if (e.key === "w") keys.current.w = false;
-      if (e.key === "a") keys.current.a = false;
-      if (e.key === "s") keys.current.s = false;
-      if (e.key === "d") keys.current.d = false;
+    const up = (e) => {
+      if (keys.current[e.key] !== undefined) keys.current[e.key] = false;
     };
 
     window.addEventListener("keydown", down);
@@ -36,68 +31,41 @@ export const usePlayerMovementGTA = (playerRef: any, cameraRef: any) => {
     };
   }, []);
 
-  // ===============================
-  // 🖱 Mouse Camera Orbit (Like GTA)
-  // ===============================
+  // Movement Loop
   useEffect(() => {
-    const mouseMove = (e: MouseEvent) => {
-      if (e.buttons === 1) {
-        cameraAngle.current -= e.movementX * 0.004;
-      }
-    };
-
-    window.addEventListener("mousemove", mouseMove);
-    return () => window.removeEventListener("mousemove", mouseMove);
-  }, []);
-
-  // ===============================
-  // 🚶 Movement + Camera Loop
-  // ===============================
-  useEffect(() => {
-    const speed = 0.10; // movement speed
-
     const update = () => {
-      if (!playerRef.current || !cameraRef.current) {
-        requestAnimationFrame(update);
-        return;
-      }
+      if (!playerRef.current || !cameraRef.current) return;
 
       const player = playerRef.current;
       const cam = cameraRef.current;
 
-      // Camera follow (GTA 3rd person)
-      cam.position.x = player.position.x + Math.sin(cameraAngle.current) * 4;
-      cam.position.z = player.position.z + Math.cos(cameraAngle.current) * 4;
-      cam.position.y = player.position.y + 2.2;
-      cam.lookAt(player.position);
+      const forward = cam.getWorldDirection(new THREE.Vector3());
+      forward.y = 0;
+      forward.normalize();
 
-      // Forward & Right vectors based on camera
-      const forward = new THREE.Vector3(
-        Math.sin(cameraAngle.current),
-        0,
-        Math.cos(cameraAngle.current)
-      );
+      const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
 
-      const right = new THREE.Vector3(
-        Math.sin(cameraAngle.current + Math.PI / 2),
-        0,
-        Math.cos(cameraAngle.current + Math.PI / 2)
-      );
+      let moveX = 0;
+      let moveZ = 0;
 
-      let move = new THREE.Vector3();
+      if (keys.current.w) moveZ -= 1;
+      if (keys.current.s) moveZ += 1;
+      if (keys.current.a) moveX -= 1;
+      if (keys.current.d) moveX += 1;
 
-      if (keys.current.w) move.add(forward);
-      if (keys.current.s) move.sub(forward);
-      if (keys.current.a) move.sub(right);
-      if (keys.current.d) move.add(right);
+      const move = new THREE.Vector3();
+      move.addScaledVector(forward, moveZ);
+      move.addScaledVector(right, moveX);
 
-      move.normalize().multiplyScalar(speed);
-
-      player.position.add(move);
-
-      // Rotate player toward movement
       if (move.length() > 0) {
-        player.rotation.y = Math.atan2(move.x, move.z);
+        move.normalize();
+
+        player.position.x += move.x * speed;
+        player.position.z += move.z * speed;
+
+        // Smooth Rotation
+        const targetRot = Math.atan2(move.x, move.z);
+        player.rotation.y += (targetRot - player.rotation.y) * rotationSmooth;
       }
 
       requestAnimationFrame(update);
@@ -107,4 +75,4 @@ export const usePlayerMovementGTA = (playerRef: any, cameraRef: any) => {
   }, []);
 
   return null;
-};
+}
