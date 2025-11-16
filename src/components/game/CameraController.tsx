@@ -14,7 +14,6 @@ interface CameraControllerProps {
 const CameraController = forwardRef<any, CameraControllerProps>(
   ({ target, offset, followRotation = 0, lerpSpeed = 0.12, lookAtLerp = 0.15 }, ref) => {
     const { camera } = useThree();
-
     const currentPosition = useRef(new Vector3());
     const currentLookAt = useRef(new Vector3());
 
@@ -32,8 +31,6 @@ const CameraController = forwardRef<any, CameraControllerProps>(
 
     useFrame(() => {
       const offsetVec = new Vector3(...offset);
-
-      // Rotate around player direction
       const rotatedOffset = rotateOffsetByY(offsetVec, followRotation);
 
       const playerPos = new Vector3(...target);
