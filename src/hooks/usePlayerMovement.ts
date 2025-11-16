@@ -1,57 +1,60 @@
 import { useEffect, useRef } from "react";
 
-interface SyncOptions {
-  serverUrl?: string;
-  syncIntervalMs?: number;
-}
+export default function usePlayerMovement() {
+  const position = useRef({ x: 0, y: 0, z: 0 });
+  const velocity = useRef({ x: 0, y: 0 });
+  const speed = 0.08;
 
-interface Position {
-  x: number;
-  y: number;
-  z?: number;
-}
+  const keys = useRef({
+    forward: false,
+    backward: false,
+    left: false,
+    right: false,
+  });
 
-const usePlayerMovement = (syncOptions?: SyncOptions) => {
-  const { serverUrl, syncIntervalMs } = syncOptions || {};
-  const positionRef = useRef<Position>({ x: 0, y: 0, z: 0 });
-  const syncRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Update local player position safely
-  const updatePosition = (newPosition: Partial<Position>) => {
-    positionRef.current = {
-      ...positionRef.current,
-      ...newPosition,
-    };
+  // Keyboard controls
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === "w") keys.current.forward = true;
+    if (e.key === "s") keys.current.backward = true;
+    if (e.key === "a") keys.current.left = true;
+    if (e.key === "d") keys.current.right = true;
   };
 
-  // Sync to server (optional)
-  const startSync = () => {
-    if (!serverUrl || !syncIntervalMs) return;
-
-    const sync = () => {
-      fetch(`${serverUrl}/player/position`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(positionRef.current),
-      }).catch(() => {});
-    };
-
-    syncRef.current = setInterval(sync, syncIntervalMs);
+  const handleKeyUp = (e: KeyboardEvent) => {
+    if (e.key === "w") keys.current.forward = false;
+    if (e.key === "s") keys.current.backward = false;
+    if (e.key === "a") keys.current.left = false;
+    if (e.key === "d") keys.current.right = false;
   };
 
-  const stopSync = () => {
-    if (syncRef.current) {
-      clearInterval(syncRef.current);
-      syncRef.current = null;
-    }
+  // Update player movement
+  const updateMovement = () => {
+    let vx = 0;
+    let vy = 0;
+
+    if (keys.current.forward) vy -= speed;
+    if (keys.current.backward) vy += speed;
+    if (keys.current.left) vx -= speed;
+    if (keys.current.right) vx += speed;
+
+    velocity.current = { x: vx, y: vy };
+
+    position.current.x += vx;
+    position.current.y += vy;
   };
 
   useEffect(() => {
-    startSync();
-    return () => stopSync();
-  }, [serverUrl, syncIntervalMs]);
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
 
-  return updatePosition;
-};
+    const interval = setInterval(updateMovement, 16); // 60fps
 
-export default usePlayerMovement;
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+      clearInterval(interval);
+    };
+  }, []);
+
+  return position;
+}
