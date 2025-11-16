@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef } from "react";
+import * as THREE from "three";
 
 export default function usePlayerMovementGTA(playerRef, cameraRef) {
   const velocity = useRef({ x: 0, y: 0, z: 0 });
@@ -12,66 +13,63 @@ export default function usePlayerMovementGTA(playerRef, cameraRef) {
     d: false,
   });
 
-  // Key Events
+  // ---- KEYBOARD EVENTS ----
   useEffect(() => {
-    const down = (e) => {
+    const down = (e: KeyboardEvent) => {
       if (keys.current[e.key] !== undefined) keys.current[e.key] = true;
     };
-
-    const up = (e) => {
+    const up = (e: KeyboardEvent) => {
       if (keys.current[e.key] !== undefined) keys.current[e.key] = false;
     };
 
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
-
     return () => {
       window.removeEventListener("keydown", down);
       window.removeEventListener("keyup", up);
     };
   }, []);
 
-  // Movement Loop
+  // ---- MOVEMENT LOOP ----
   useEffect(() => {
-    const update = () => {
-      if (!playerRef.current || !cameraRef.current) return;
+    const move = () => {
+      if (!playerRef.current || !cameraRef.current) {
+        requestAnimationFrame(move);
+        return;
+      }
 
       const player = playerRef.current;
-      const cam = cameraRef.current;
+      const camera = cameraRef.current;
 
-      const forward = cam.getWorldDirection(new THREE.Vector3());
+      const forward = new THREE.Vector3();
+      const right = new THREE.Vector3();
+
+      camera.getWorldDirection(forward);
       forward.y = 0;
       forward.normalize();
 
-      const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
+      right.crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
 
-      let moveX = 0;
-      let moveZ = 0;
+      let moveDir = new THREE.Vector3();
 
-      if (keys.current.w) moveZ -= 1;
-      if (keys.current.s) moveZ += 1;
-      if (keys.current.a) moveX -= 1;
-      if (keys.current.d) moveX += 1;
+      if (keys.current.w) moveDir.add(forward);
+      if (keys.current.s) moveDir.sub(forward);
+      if (keys.current.a) moveDir.sub(right);
+      if (keys.current.d) moveDir.add(right);
 
-      const move = new THREE.Vector3();
-      move.addScaledVector(forward, moveZ);
-      move.addScaledVector(right, moveX);
+      if (moveDir.length() > 0) {
+        moveDir.normalize();
+        player.position.x += moveDir.x * speed;
+        player.position.z += moveDir.z * speed;
 
-      if (move.length() > 0) {
-        move.normalize();
-
-        player.position.x += move.x * speed;
-        player.position.z += move.z * speed;
-
-        // Smooth Rotation
-        const targetRot = Math.atan2(move.x, move.z);
-        player.rotation.y += (targetRot - player.rotation.y) * rotationSmooth;
+        const targetRotation = Math.atan2(moveDir.x, moveDir.z);
+        player.rotation.y += (targetRotation - player.rotation.y) * rotationSmooth;
       }
 
-      requestAnimationFrame(update);
+      requestAnimationFrame(move);
     };
 
-    update();
+    move();
   }, []);
 
   return null;
