@@ -5,14 +5,10 @@ import { useState, useEffect, useRef } from 'react';
 // Hooks
 import usePlayerMovementGTA from '@/hooks/usePlayerMovementGTA';
 import { useCameraOrbit } from '@/hooks/useCameraOrbit';
-import { useCollisionDetection } from '@/hooks/useCollisionDetection';
 
 // Components
 import GameScene from '@/components/game/GameScene';
 import GameHUD from '@/components/game/GameHUD';
-import VirtualJoystick from '@/components/game/VirtualJoystick';
-import InteriorScene from '@/components/game/InteriorScene';
-import JobUI from '@/components/game/JobUI';
 import Shop from '@/components/game/Shop';
 
 // UI + Data
@@ -23,7 +19,7 @@ import { shopItems } from '@/data/shopItems';
 
 const Index = () => {
   // -------------------------------
-  // Refs (Correct Place)
+  // Refs
   // -------------------------------
   const playerRef = useRef(null);
   const cameraRef = useRef(null);
@@ -69,14 +65,17 @@ const Index = () => {
 
   const handleBuy = (itemId: string) => {
     const item = shopItems.find((i) => i.id === itemId);
-    if (!item || money < item.price) return;
+    if (!item) return;
+    if (money < item.price) return;
 
     setMoney((m) => m - item.price);
 
+    // Food → Restore Energy
     if (item.type === 'food' && item.effect?.energy) {
       setEnergy((e) => Math.min(100, e + item.effect.energy));
     }
 
+    // Upgrades
     if (item.type === 'upgrade') {
       if (item.effect?.inventorySizeIncrease) {
         setInventorySize((s) => s + item.effect.inventorySizeIncrease);
@@ -86,6 +85,7 @@ const Index = () => {
       }
     }
 
+    // Inventory Items
     if (item.type === 'item') {
       if (inventory.length < inventorySize) {
         setInventory((inv) => [...inv, item.id]);
@@ -108,7 +108,10 @@ const Index = () => {
 
       {/* Pause Button */}
       <div className="absolute top-4 right-4 z-50">
-        <Button onClick={() => setIsPaused(!isPaused)} variant="secondary">
+        <Button
+          onClick={() => setIsPaused((p) => !p)}
+          variant="secondary"
+        >
           {isPaused ? <Play /> : <Pause />}
         </Button>
       </div>
@@ -144,7 +147,11 @@ const Index = () => {
 
       {/* Shop */}
       {isShopOpen && (
-        <Shop money={money} onBuy={handleBuy} onClose={() => setIsShopOpen(false)} />
+        <Shop
+          money={money}
+          onBuy={handleBuy}
+          onClose={() => setIsShopOpen(false)}
+        />
       )}
     </div>
   );
