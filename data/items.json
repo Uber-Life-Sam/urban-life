@@ -1,0 +1,12 @@
+[
+  {
+    "id": 1,
+    "name": "Health Kit",
+    "price": 50
+  },
+  {
+    "id": 2,
+    "name": "Energy Drink",
+    "price": 30
+  }
+]
