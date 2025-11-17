@@ -25,7 +25,7 @@ export default function usePlayerMovementGTA(playerRef: any, cameraRef: any) {
 
   useEffect(() => {
     if (!window._gameKeys)
-      window._gameKeys = { w: false, a: false, s: false, d: false };
+      window._gameKeys = { w: false, a: false, s: false, d: false, e: false };
 
     const down = (e: KeyboardEvent) => {
       const k = e.key.toLowerCase();
