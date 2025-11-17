@@ -3,48 +3,10 @@ import React, { forwardRef, useEffect, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Vector3, Matrix4 } from "three";
 
-// add these above existing useEffect mousemove
-const isRightDown = useRef(false);
-
-useEffect(() => {
-  const onDown = (e: MouseEvent) => {
-    if (e.button === 2) { isRightDown.current = true; }
-  };
-  const onUp = (e: MouseEvent) => {
-    if (e.button === 2) { isRightDown.current = false; }
-  };
-  window.addEventListener("mousedown", onDown);
-  window.addEventListener("mouseup", onUp);
-  return () => {
-    window.removeEventListener("mousedown", onDown);
-    window.removeEventListener("mouseup", onUp);
-  };
-}, []);
-
-useEffect(() => {
-  let prevX: number | null = null;
-  const onMove = (e: MouseEvent) => {
-    if (!isRightDown.current) return; // only process when right-click held
-
-    const dx = typeof (e as any).movementX === "number" ? (e as any).movementX :
-      (prevX === null ? 0 : e.clientX - prevX);
-    prevX = e.clientX;
-
-    yawTarget.current += -dx * mouseSensitivity;
-    const clamp = Math.PI / 2.2;
-    yawTarget.current = Math.max(-clamp, Math.min(clamp, yawTarget.current));
-    lastMouseTime.current = performance.now();
-  };
-  window.addEventListener("mousemove", onMove);
-  return () => window.removeEventListener("mousemove", onMove);
-}, [mouseSensitivity]);
-
-
-
 interface CameraControllerProps {
-  target: [number, number, number];    // player world position
-  offset: [number, number, number];    // base offset (e.g. [0, 3, -6])
-  followRotation?: number;             // player's Y rotation (radians)
+  target: [number, number, number];
+  offset: [number, number, number]; // base offset, e.g. [0, 2.4, -5.5]
+  followRotation?: number; // player's Y rotation
   lerpSpeed?: number;
   lookAtLerp?: number;
   mouseSensitivity?: number;
@@ -58,15 +20,14 @@ const CameraController = forwardRef<any, CameraControllerProps>(({
   lerpSpeed = 0.12,
   lookAtLerp = 0.15,
   mouseSensitivity = 0.0035,
-  autoReturnMs = 900
+  autoReturnMs = 1000
 }, ref) => {
   const { camera } = useThree();
-  const currentPosition = useRef(new Vector3());
+  const currentPosition = useRef(new Vector3(camera.position.x, camera.position.y, camera.position.z));
   const currentLookAt = useRef(new Vector3());
-
   const yawOffset = useRef(0);
   const yawTarget = useRef(0);
-  const lastMouse = useRef<number>(0);
+  const lastMouseTime = useRef(0);
 
   useEffect(() => {
     if (!ref) return;
@@ -77,31 +38,28 @@ const CameraController = forwardRef<any, CameraControllerProps>(({
   useEffect(() => {
     let prevX: number | null = null;
     const onMove = (e: MouseEvent) => {
-      const dx = typeof (e as any).movementX === "number" ? (e as any).movementX : (prevX === null ? 0 : e.clientX - prevX);
+      const dx = (typeof (e as any).movementX === "number") ? (e as any).movementX : (prevX === null ? 0 : e.clientX - prevX);
       prevX = e.clientX;
-
       yawTarget.current += -dx * mouseSensitivity;
       const clamp = Math.PI / 2.2;
       yawTarget.current = Math.max(-clamp, Math.min(clamp, yawTarget.current));
-      lastMouse.current = performance.now();
+      lastMouseTime.current = performance.now();
     };
     window.addEventListener("mousemove", onMove);
     return () => window.removeEventListener("mousemove", onMove);
   }, [mouseSensitivity]);
 
   useFrame(() => {
-    // smooth yaw
     yawOffset.current += (yawTarget.current - yawOffset.current) * 0.14;
-
-    // auto recenter if idle
-    if (performance.now() - lastMouse.current > (autoReturnMs || 900)) {
+    if (performance.now() - lastMouseTime.current > (autoReturnMs || 1000)) {
       yawTarget.current += (0 - yawTarget.current) * 0.08;
     }
 
-    // rotate base offset by followRotation + yawOffset
     const base = new Vector3(offset[0], offset[1], offset[2]);
     const totalYaw = (followRotation || 0) + yawOffset.current;
-    const m = new Matrix4().makeRotationY(totalYaw);
+
+    const m = new Matrix4();
+    m.makeRotationY(totalYaw);
     const rotated = base.clone().applyMatrix4(m);
 
     const desiredPos = new Vector3(target[0], target[1], target[2]).add(rotated);
@@ -109,7 +67,7 @@ const CameraController = forwardRef<any, CameraControllerProps>(({
     currentPosition.current.lerp(desiredPos, lerpSpeed);
     camera.position.copy(currentPosition.current);
 
-    const desiredLookAt = new Vector3(target[0], target[1] + 1.2, target[2]);
+    const desiredLookAt = new Vector3(target[0], target[1] + 1.25, target[2]);
     currentLookAt.current.lerp(desiredLookAt, lookAtLerp);
     camera.lookAt(currentLookAt.current);
   });
