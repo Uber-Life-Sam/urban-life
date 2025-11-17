@@ -52,6 +52,7 @@ export default function usePlayerMovementGTA(playerRef: any, cameraRef: any) {
 
     const velocity = new THREE.Vector3();
     const temp = new THREE.Vector3();
+    let lastRotation = state.rotation;
 
     const loop = () => {
       raf.current = requestAnimationFrame(loop);
@@ -87,20 +88,30 @@ export default function usePlayerMovementGTA(playerRef: any, cameraRef: any) {
 
       playerRef.current.position.add(velocity);
 
-      let rotY = state.rotation;
+      let rotY = lastRotation;
       if (velocity.lengthSq() > 0.0001) {
         rotY = Math.atan2(velocity.x, velocity.z);
         playerRef.current.rotation.y = rotY;
+        lastRotation = rotY;
       }
 
-      setState({
-        position: [
-          playerRef.current.position.x,
-          playerRef.current.position.y,
-          playerRef.current.position.z,
-        ],
-        rotation: rotY,
-        isMoving,
+      // Only update state if values changed significantly to reduce re-renders
+      const newPos: [number, number, number] = [
+        playerRef.current.position.x,
+        playerRef.current.position.y,
+        playerRef.current.position.z,
+      ];
+      
+      setState(prev => {
+        const posChanged = Math.abs(prev.position[0] - newPos[0]) > 0.001 ||
+                          Math.abs(prev.position[2] - newPos[2]) > 0.001;
+        const rotChanged = Math.abs(prev.rotation - rotY) > 0.01;
+        const movingChanged = prev.isMoving !== isMoving;
+        
+        if (posChanged || rotChanged || movingChanged) {
+          return { position: newPos, rotation: rotY, isMoving };
+        }
+        return prev;
       });
     };
 

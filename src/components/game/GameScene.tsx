@@ -119,8 +119,10 @@ const GameScene = ({
   }, []);
 
   useEffect(() => {
-    onNPCPositionsUpdate(npcPositions);
-  }, [npcPositions, onNPCPositionsUpdate]);
+    if (npcPositions.length > 0) {
+      onNPCPositionsUpdate(npcPositions);
+    }
+  }, [npcPositions]);
 
   const handleNPCPosition = (index: number) => (pos: [number, number, number]) => {
     setNpcPositions((prev) => {
