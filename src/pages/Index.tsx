@@ -2,15 +2,26 @@
 import { useState, useEffect, useRef } from "react";
 import usePlayerMovementGTA from "@/hooks/usePlayerMovementGTA";
 import { useCameraOrbit } from "@/hooks/useCameraOrbit";
+import { useWeather } from "@/hooks/useWeather";
+import { useWeatherAudio } from "@/hooks/useWeatherAudio";
 
 import GameScene from "@/components/game/GameScene";
 import GameHUD from "@/components/game/GameHUD";
 import Shop from "@/components/game/Shop";
+import DialogueUI from "@/components/game/DialogueUI";
+import QuestTracker from "@/components/game/QuestTracker";
+import QuestJournal from "@/components/game/QuestJournal";
+import InteriorEnvironment from "@/components/game/InteriorEnvironment";
 
 import { Button } from "@/components/ui/button";
-import { Play, Pause, Activity } from "lucide-react";
+import { Play, Pause, Activity, BookOpen } from "lucide-react";
 import { Building } from "@/data/buildings";
 import { shopItems } from "@/data/shopItems";
+import { Quest, DialogueNode, DialogueOption } from "@/types/quest";
+import { availableQuests, dialogueDatabase } from "@/data/quests";
+import { Interior, interiors } from "@/types/interior";
+import { Canvas } from "@react-three/fiber";
+import { PerspectiveCamera } from "@react-three/drei";
 
 const Index = () => {
 
@@ -65,6 +76,19 @@ const Index = () => {
   const [speedMultiplier, setSpeedMultiplier] = useState(1);
   const [showPerformanceStats, setShowPerformanceStats] = useState(false);
 
+  // Weather system
+  const { weather } = useWeather(gameTime);
+  useWeatherAudio(weather);
+
+  // Quest system
+  const [quests, setQuests] = useState<Quest[]>(availableQuests);
+  const [currentDialogue, setCurrentDialogue] = useState<DialogueNode | null>(null);
+  const [isQuestJournalOpen, setIsQuestJournalOpen] = useState(false);
+
+  // Interior system
+  const [currentInterior, setCurrentInterior] = useState<Interior | null>(null);
+  const [isInInterior, setIsInInterior] = useState(false);
+
   const handleBuy = (itemId: string) => {
     const item = shopItems.find((i) => i.id === itemId);
     if (!item || money < item.price) return;
@@ -88,12 +112,62 @@ const Index = () => {
 
   const handleBuildingClick = (building: Building) => {
     setJob("Explorer");
+    // Start dialogue based on building type
+    if (building.name === "City Hall") {
+      setCurrentDialogue(dialogueDatabase.mayor_greeting);
+    } else {
+      setCurrentDialogue(dialogueDatabase.generic_npc);
+    }
   };
+
+  const handleDialogueOption = (option: DialogueOption) => {
+    if (option.action === 'accept_quest' && option.questId) {
+      setQuests(prev => prev.map(q => 
+        q.id === option.questId ? { ...q, status: 'active' as const } : q
+      ));
+      setMoney(m => m + 100); // Small bonus for accepting
+      setCurrentDialogue(null);
+    } else if (option.action === 'exit' || option.action === 'decline_quest') {
+      setCurrentDialogue(null);
+    } else if (option.nextDialogueId) {
+      setCurrentDialogue(dialogueDatabase[option.nextDialogueId]);
+    }
+  };
+
+  const handleEnterInterior = (interiorId: string) => {
+    const interior = interiors[interiorId];
+    if (interior) {
+      setCurrentInterior(interior);
+      setIsInInterior(true);
+    }
+  };
+
+  const handleExitInterior = () => {
+    if (currentInterior) {
+      // Teleport player to exit position
+      setPlayerState({
+        ...playerState,
+        position: currentInterior.exitPosition,
+      });
+    }
+    setIsInInterior(false);
+    setCurrentInterior(null);
+  };
+
+  const activeQuests = quests.filter(q => q.status === 'active');
 
   return (
     <div className="relative w-full h-screen overflow-hidden bg-background">
 
       <div className="absolute top-4 right-4 z-50 flex gap-2">
+        <Button 
+          onClick={() => setIsQuestJournalOpen(true)} 
+          variant="secondary"
+          size="icon"
+          title="Quest Journal"
+        >
+          <BookOpen />
+        </Button>
         <Button 
           onClick={() => setShowPerformanceStats(!showPerformanceStats)} 
           variant="secondary"
@@ -113,22 +187,37 @@ const Index = () => {
         </Button>
       </div>
 
-      <GameScene
-        playerRef={playerRef}
-        cameraRef={cameraRef}
+      {isInInterior && currentInterior ? (
+        <div className="w-full h-full">
+          <Canvas camera={{ position: [0, 5, 10], fov: 60 }} shadows>
+            <InteriorEnvironment furniture={currentInterior.furniture} />
+            <PerspectiveCamera makeDefault position={[0, 5, 10]} />
+          </Canvas>
+          <Button
+            className="absolute bottom-8 left-1/2 -translate-x-1/2 z-50"
+            onClick={handleExitInterior}
+          >
+            Exit Building (E)
+          </Button>
+        </div>
+      ) : (
+        <GameScene
+          playerRef={playerRef}
+          cameraRef={cameraRef}
+          timeOfDay={gameTime}
+          weather={weather}
+          playerPosition={playerState.position}
+          playerRotation={playerState.rotation}
+          isMoving={playerState.isMoving}
+          cameraOffset={cameraOrbit.offset}
+          onBuildingClick={handleBuildingClick}
+          onNPCPositionsUpdate={() => {}}
+          showPerformanceStats={showPerformanceStats}
+          onEnterInterior={handleEnterInterior}
+        />
+      )}
 
-        timeOfDay={gameTime}
-
-        playerPosition={playerState.position}
-        playerRotation={playerState.rotation}
-        isMoving={playerState.isMoving}
-
-        cameraOffset={cameraOrbit.offset}
-
-        onBuildingClick={handleBuildingClick}
-        onNPCPositionsUpdate={() => {}}
-        showPerformanceStats={showPerformanceStats}
-      />
+      <QuestTracker activeQuests={activeQuests} />
 
       <GameHUD
         time={`${String(Math.floor(gameTime)).padStart(2, "0")}:${String(
@@ -138,6 +227,21 @@ const Index = () => {
         energy={energy}
         job={job}
       />
+
+      {currentDialogue && (
+        <DialogueUI
+          dialogue={currentDialogue}
+          onSelectOption={handleDialogueOption}
+          onClose={() => setCurrentDialogue(null)}
+        />
+      )}
+
+      {isQuestJournalOpen && (
+        <QuestJournal
+          quests={quests}
+          onClose={() => setIsQuestJournalOpen(false)}
+        />
+      )}
 
       {isShopOpen && (
         <Shop

@@ -12,14 +12,18 @@ import ClickableBuilding from "./ClickableBuilding";
 import PlayerHouse from "./PlayerHouse";
 import PlayerLand from "./PlayerLand";
 import PerformanceStats from "./PerformanceStats";
+import WeatherSystem from "./WeatherSystem";
+import DoorInteraction from "./DoorInteraction";
 import { useNPCMovement } from "@/hooks/useNPCMovement";
 import { useVehicleMovement } from "@/hooks/useVehicleMovement";
 import { npcRoutines, NPC_COLORS } from "@/data/npcRoutines";
 import { buildings, Building } from "@/data/buildings";
 import { trafficLights, roadPaths } from "@/data/roadNetwork";
+import { WeatherState } from "@/hooks/useWeather";
 
 interface GameSceneProps {
   timeOfDay: number;
+  weather: WeatherState;
   playerPosition: [number, number, number];
   playerRotation: number; // Y rotation in radians (number)
   isMoving: boolean;
@@ -27,6 +31,7 @@ interface GameSceneProps {
   onBuildingClick: (building: Building) => void;
   onNPCPositionsUpdate: (positions: Array<[number, number, number]>) => void;
   showPerformanceStats: boolean;
+  onEnterInterior: (interiorId: string) => void;
 
   playerRef: any;
   cameraRef: any;
@@ -59,6 +64,7 @@ const VehicleController = ({ path, color, shouldStop }: { path: any; color: stri
 
 const GameScene = ({
   timeOfDay,
+  weather,
   playerPosition,
   playerRotation,
   isMoving,
@@ -66,6 +72,7 @@ const GameScene = ({
   onBuildingClick,
   onNPCPositionsUpdate,
   showPerformanceStats,
+  onEnterInterior,
   playerRef,
   cameraRef,
 }: GameSceneProps) => {
@@ -182,6 +189,17 @@ const GameScene = ({
 
           <PlayerLand position={[0, 0, -30]} />
           <PlayerHouse position={[0, 0, -30]} />
+
+          {/* Weather System */}
+          <WeatherSystem weather={weather} areaSize={40} />
+
+          {/* Door Interactions */}
+          <DoorInteraction
+            position={[0, 0, -28]}
+            playerPosition={playerPosition}
+            onEnter={() => onEnterInterior('player_house')}
+            buildingName="Your House"
+          />
 
           {/* Player with ref */}
           <Player ref={playerRef} /* position removed, ref will control position */ rotation={playerRotation} isMoving={isMoving} />
