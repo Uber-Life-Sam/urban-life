@@ -2,6 +2,31 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 
+// inside usePlayerMovementGTA.ts, movement loop region
+const sprintMultiplier = 1.7;  // example value
+const jumpPower = 0.42;
+const gravity = -9.8 * 0.02;
+
+const keys = window._gameKeys!;
+const isGrounded = player.position.y <= 1.001;
+
+// Sprint
+let moveSpeed = baseSpeed;
+if (keys.shift) {
+  moveSpeed *= sprintMultiplier;
+}
+
+// Jump
+if (keys.space && isGrounded) {
+  velocity.y = jumpPower;
+}
+
+// Gravity apply
+velocity.y += gravity;
+
+// then apply velocity.x,z as before
+// and apply velocity.y to player.position.y
+
 type PlayerState = {
   position: [number, number, number];
   rotation: number; // Y rotation in radians (single number)
