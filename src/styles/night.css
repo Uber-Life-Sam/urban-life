@@ -1,0 +1,22 @@
+/* night.css - lightweight variables for night theme */
+:root {
+  --night-tint: rgba(6,12,28,0.55);
+  --night-vignette-opacity: 0.6;
+  --night-shadow-y: 10px;
+  --night-shadow-blur: 30px; /* keep moderate - avoid huge blur like 100px */
+  --night-shadow-color: rgba(0,0,0,0.6);
+}
+
+/* Utility class to reduce heavy effects (used when low perf) */
+.night--reduced {
+  --night-shadow-blur: 0px;
+  --night-vignette-opacity: 0.45;
+  --night-tint: rgba(6,12,28,0.45);
+}
+
+/* If you previously used big box-shadows, replace with this small rule */
+.night-shadow {
+  box-shadow: 0 var(--night-shadow-y) var(--night-shadow-blur) var(--night-shadow-color);
+  transition: box-shadow 200ms linear, filter 200ms linear;
+  will-change: box-shadow; /* use sparingly */
+}
