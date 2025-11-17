@@ -1,10 +1,10 @@
-// usePlayerMovementGTA.ts
+// src/hooks/usePlayerMovementGTA.ts
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 
 type PlayerState = {
   position: [number, number, number];
-  rotation: number;
+  rotation: number; // Y rotation in radians (single number)
   isMoving: boolean;
 };
 
@@ -21,106 +21,108 @@ export default function usePlayerMovementGTA(playerRef: any, cameraRef: any) {
     isMoving: false,
   });
 
-  const raf = useRef<number | null>(null);
+  const rafRef = useRef<number | null>(null);
 
+  // keyboard init
   useEffect(() => {
-    if (!window._gameKeys)
-      window._gameKeys = { w: false, a: false, s: false, d: false, e: false };
+    if (!window._gameKeys) window._gameKeys = { w: false, a: false, s: false, d: false };
 
-    const down = (e: KeyboardEvent) => {
+    const onDown = (e: KeyboardEvent) => {
       const k = e.key.toLowerCase();
-      if (window._gameKeys && k in window._gameKeys)
-        window._gameKeys[k] = true;
+      if (k in window._gameKeys!) window._gameKeys![k] = true;
     };
-    const up = (e: KeyboardEvent) => {
+    const onUp = (e: KeyboardEvent) => {
       const k = e.key.toLowerCase();
-      if (window._gameKeys && k in window._gameKeys)
-        window._gameKeys[k] = false;
+      if (k in window._gameKeys!) window._gameKeys![k] = false;
     };
 
-    window.addEventListener("keydown", down);
-    window.addEventListener("keyup", up);
+    window.addEventListener("keydown", onDown);
+    window.addEventListener("keyup", onUp);
     return () => {
-      window.removeEventListener("keydown", down);
-      window.removeEventListener("keyup", up);
+      window.removeEventListener("keydown", onDown);
+      window.removeEventListener("keyup", onUp);
     };
   }, []);
 
+  // movement loop
   useEffect(() => {
-    const speed = 0.12;
-    const friction = 0.90;
+    const baseSpeed = 0.12; // adjust for desired walking speed
+    const friction = 0.85;
 
-    const velocity = new THREE.Vector3();
-    const temp = new THREE.Vector3();
-    let lastRotation = state.rotation;
+    const velocity = new THREE.Vector3(0, 0, 0);
+    const tmp = new THREE.Vector3();
 
     const loop = () => {
-      raf.current = requestAnimationFrame(loop);
+      rafRef.current = requestAnimationFrame(loop);
+      const keys = window._gameKeys || { w: false, a: false, s: false, d: false };
 
-      if (!playerRef.current || !cameraRef.current) return;
+      if (!playerRef?.current || !cameraRef?.current) {
+        // keep loop alive until refs exist
+        return;
+      }
 
-      const keys = window._gameKeys!;
-      const cam = cameraRef.current;
+      const cam: THREE.Camera = cameraRef.current;
+      const player: any = playerRef.current;
 
+      // camera forward in XZ
       const forward = new THREE.Vector3();
       cam.getWorldDirection(forward);
       forward.y = 0;
+      if (forward.lengthSq() === 0) forward.set(0, 0, -1);
       forward.normalize();
 
+      // right vector (camera local right)
       const right = new THREE.Vector3();
       right.crossVectors(new THREE.Vector3(0, 1, 0), forward).normalize();
 
-      temp.set(0, 0, 0);
+      // desired input
+      tmp.set(0, 0, 0);
+      if (keys.w) tmp.add(forward);
+      if (keys.s) tmp.add(forward.clone().multiplyScalar(-1));
+      if (keys.a) tmp.add(right.clone().multiplyScalar(-1));
+      if (keys.d) tmp.add(right);
 
-      if (keys.w) temp.add(forward);
-      if (keys.s) temp.sub(forward);
-      if (keys.a) temp.sub(right);
-      if (keys.d) temp.add(right);
+      let moved = false;
 
-      const isMoving = temp.lengthSq() > 0.001;
-
-      if (isMoving) {
-        temp.normalize().multiplyScalar(speed);
-        velocity.add(temp);
+      if (tmp.lengthSq() > 0.0001) {
+        tmp.normalize().multiplyScalar(baseSpeed);
+        velocity.add(tmp); // accumulate velocity for smoothness
+        moved = true;
       } else {
+        // slow down
         velocity.multiplyScalar(friction);
+        if (velocity.length() < 0.001) velocity.set(0, 0, 0);
       }
 
-      playerRef.current.position.add(velocity);
+      // clamp velocity to avoid explosion
+      const maxVel = 0.6;
+      if (velocity.length() > maxVel) velocity.setLength(maxVel);
 
-      let rotY = lastRotation;
-      if (velocity.lengthSq() > 0.0001) {
+      // apply to player position
+      player.position.add(velocity);
+
+      // compute rotation from velocity if moving
+      let rotY = state.rotation;
+      if (velocity.lengthSq() > 0.00001) {
         rotY = Math.atan2(velocity.x, velocity.z);
-        playerRef.current.rotation.y = rotY;
-        lastRotation = rotY;
+        player.rotation.y = rotY;
       }
 
-      // Only update state if values changed significantly to reduce re-renders
-      const newPos: [number, number, number] = [
-        playerRef.current.position.x,
-        playerRef.current.position.y,
-        playerRef.current.position.z,
-      ];
-      
-      setState(prev => {
-        const posChanged = Math.abs(prev.position[0] - newPos[0]) > 0.001 ||
-                          Math.abs(prev.position[2] - newPos[2]) > 0.001;
-        const rotChanged = Math.abs(prev.rotation - rotY) > 0.01;
-        const movingChanged = prev.isMoving !== isMoving;
-        
-        if (posChanged || rotChanged || movingChanged) {
-          return { position: newPos, rotation: rotY, isMoving };
-        }
-        return prev;
+      // sync state
+      setState({
+        position: [player.position.x, player.position.y, player.position.z],
+        rotation: rotY,
+        isMoving: moved || velocity.length() > 0.001,
       });
     };
 
-    raf.current = requestAnimationFrame(loop);
+    rafRef.current = requestAnimationFrame(loop);
 
     return () => {
-      if (raf.current) cancelAnimationFrame(raf.current);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
     };
-  }, []);
+  }, [playerRef, cameraRef]);
 
   return state;
 }
