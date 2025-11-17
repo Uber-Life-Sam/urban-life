@@ -1,16 +1,17 @@
 // src/components/game/GameScene.tsx
 import { Canvas } from "@react-three/fiber";
 import { Sky, PerspectiveCamera } from "@react-three/drei";
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState, useEffect, useMemo } from "react";
 import CityEnvironment from "./CityEnvironment";
 import Player from "./Player";
 import CameraController from "./CameraController";
-import NPC from "./NPC";
+import NPCWithLOD from "./NPCWithLOD";
 import TrafficLight from "./TrafficLight";
-import Vehicle from "./Vehicle";
+import VehicleWithLOD from "./VehicleWithLOD";
 import ClickableBuilding from "./ClickableBuilding";
 import PlayerHouse from "./PlayerHouse";
 import PlayerLand from "./PlayerLand";
+import PerformanceStats from "./PerformanceStats";
 import { useNPCMovement } from "@/hooks/useNPCMovement";
 import { useVehicleMovement } from "@/hooks/useVehicleMovement";
 import { npcRoutines, NPC_COLORS } from "@/data/npcRoutines";
@@ -25,6 +26,7 @@ interface GameSceneProps {
   cameraOffset: [number, number, number];
   onBuildingClick: (building: Building) => void;
   onNPCPositionsUpdate: (positions: Array<[number, number, number]>) => void;
+  showPerformanceStats: boolean;
 
   playerRef: any;
   cameraRef: any;
@@ -47,12 +49,12 @@ const NPCController = ({
     onPositionUpdate(position);
   }, [position, onPositionUpdate]);
 
-  return <NPC position={position} rotation={rotation} color={color} />;
+  return <NPCWithLOD position={position} rotation={rotation} color={color} />;
 };
 
 const VehicleController = ({ path, color, shouldStop }: { path: any; color: string; shouldStop: boolean; }) => {
   const { position, rotation } = useVehicleMovement(path, 3, shouldStop);
-  return <Vehicle position={position} rotation={rotation} color={color} />;
+  return <VehicleWithLOD position={position} rotation={rotation} color={color} />;
 };
 
 const GameScene = ({
@@ -63,6 +65,7 @@ const GameScene = ({
   cameraOffset,
   onBuildingClick,
   onNPCPositionsUpdate,
+  showPerformanceStats,
   playerRef,
   cameraRef,
 }: GameSceneProps) => {
@@ -132,7 +135,18 @@ const GameScene = ({
     });
   };
 
+  // Calculate total entity count for performance stats
+  const entityCount = useMemo(() => {
+    const npcCount = npcRoutines.length;
+    const vehicleCount = roadPaths.length * 2; // 2 vehicles per path
+    const buildingCount = buildings.length;
+    const trafficLightCount = trafficLights.length;
+    return npcCount + vehicleCount + buildingCount + trafficLightCount + 3; // +3 for player, house, land
+  }, []);
+
   return (
+    <>
+      {showPerformanceStats && <PerformanceStats entityCount={entityCount} />}
     <div className="w-full h-full">
       <Canvas camera={{ position: [10, 8, 10], fov: 60 }} shadows>
         <Suspense fallback={null}>
@@ -222,6 +236,7 @@ const GameScene = ({
         </Suspense>
       </Canvas>
     </div>
+    </>
   );
 };
 

@@ -8,7 +8,7 @@ import GameHUD from "@/components/game/GameHUD";
 import Shop from "@/components/game/Shop";
 
 import { Button } from "@/components/ui/button";
-import { Play, Pause } from "lucide-react";
+import { Play, Pause, Activity } from "lucide-react";
 import { Building } from "@/data/buildings";
 import { shopItems } from "@/data/shopItems";
 
@@ -63,6 +63,7 @@ const Index = () => {
   const [inventory, setInventory] = useState<string[]>([]);
   const [inventorySize, setInventorySize] = useState(10);
   const [speedMultiplier, setSpeedMultiplier] = useState(1);
+  const [showPerformanceStats, setShowPerformanceStats] = useState(false);
 
   const handleBuy = (itemId: string) => {
     const item = shopItems.find((i) => i.id === itemId);
@@ -92,8 +93,16 @@ const Index = () => {
   return (
     <div className="relative w-full h-screen overflow-hidden bg-background">
 
-      <div className="absolute top-4 right-4 z-50">
-        <Button onClick={() => setIsPaused(!isPaused)} variant="secondary">
+      <div className="absolute top-4 right-4 z-50 flex gap-2">
+        <Button 
+          onClick={() => setShowPerformanceStats(!showPerformanceStats)} 
+          variant="secondary"
+          size="icon"
+          title="Toggle Performance Stats"
+        >
+          <Activity className={showPerformanceStats ? "text-green-500" : ""} />
+        </Button>
+        <Button onClick={() => setIsPaused(!isPaused)} variant="secondary" size="icon">
           {isPaused ? <Play /> : <Pause />}
         </Button>
       </div>
@@ -111,13 +120,14 @@ const Index = () => {
         timeOfDay={gameTime}
 
         playerPosition={playerState.position}
-        playerRotation={playerState.rotation}   // FIXED: number only
+        playerRotation={playerState.rotation}
         isMoving={playerState.isMoving}
 
         cameraOffset={cameraOrbit.offset}
 
         onBuildingClick={handleBuildingClick}
         onNPCPositionsUpdate={() => {}}
+        showPerformanceStats={showPerformanceStats}
       />
 
       <GameHUD
