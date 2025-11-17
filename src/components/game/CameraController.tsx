@@ -3,6 +3,44 @@ import React, { forwardRef, useEffect, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Vector3, Matrix4 } from "three";
 
+// add these above existing useEffect mousemove
+const isRightDown = useRef(false);
+
+useEffect(() => {
+  const onDown = (e: MouseEvent) => {
+    if (e.button === 2) { isRightDown.current = true; }
+  };
+  const onUp = (e: MouseEvent) => {
+    if (e.button === 2) { isRightDown.current = false; }
+  };
+  window.addEventListener("mousedown", onDown);
+  window.addEventListener("mouseup", onUp);
+  return () => {
+    window.removeEventListener("mousedown", onDown);
+    window.removeEventListener("mouseup", onUp);
+  };
+}, []);
+
+useEffect(() => {
+  let prevX: number | null = null;
+  const onMove = (e: MouseEvent) => {
+    if (!isRightDown.current) return; // only process when right-click held
+
+    const dx = typeof (e as any).movementX === "number" ? (e as any).movementX :
+      (prevX === null ? 0 : e.clientX - prevX);
+    prevX = e.clientX;
+
+    yawTarget.current += -dx * mouseSensitivity;
+    const clamp = Math.PI / 2.2;
+    yawTarget.current = Math.max(-clamp, Math.min(clamp, yawTarget.current));
+    lastMouseTime.current = performance.now();
+  };
+  window.addEventListener("mousemove", onMove);
+  return () => window.removeEventListener("mousemove", onMove);
+}, [mouseSensitivity]);
+
+
+
 interface CameraControllerProps {
   target: [number, number, number];    // player world position
   offset: [number, number, number];    // base offset (e.g. [0, 3, -6])
