@@ -28,7 +28,7 @@ const CameraController = forwardRef<any, CameraControllerProps>(({
 
   const yawOffset = useRef(0);
   const yawTarget = useRef(0);
-  const lastMouseTime = useRef<number>(0);
+  const lastMouse = useRef<number>(0);
 
   useEffect(() => {
     if (!ref) return;
@@ -38,34 +38,32 @@ const CameraController = forwardRef<any, CameraControllerProps>(({
 
   useEffect(() => {
     let prevX: number | null = null;
-
     const onMove = (e: MouseEvent) => {
-      const dx = (typeof (e as any).movementX === "number") ? (e as any).movementX : (prevX === null ? 0 : e.clientX - prevX);
+      const dx = typeof (e as any).movementX === "number" ? (e as any).movementX : (prevX === null ? 0 : e.clientX - prevX);
       prevX = e.clientX;
 
       yawTarget.current += -dx * mouseSensitivity;
       const clamp = Math.PI / 2.2;
       yawTarget.current = Math.max(-clamp, Math.min(clamp, yawTarget.current));
-      lastMouseTime.current = performance.now();
+      lastMouse.current = performance.now();
     };
-
     window.addEventListener("mousemove", onMove);
     return () => window.removeEventListener("mousemove", onMove);
   }, [mouseSensitivity]);
 
   useFrame(() => {
-    // smoothing yaw -> target
+    // smooth yaw
     yawOffset.current += (yawTarget.current - yawOffset.current) * 0.14;
 
-    if (performance.now() - lastMouseTime.current > (autoReturnMs || 900)) {
+    // auto recenter if idle
+    if (performance.now() - lastMouse.current > (autoReturnMs || 900)) {
       yawTarget.current += (0 - yawTarget.current) * 0.08;
     }
 
+    // rotate base offset by followRotation + yawOffset
     const base = new Vector3(offset[0], offset[1], offset[2]);
     const totalYaw = (followRotation || 0) + yawOffset.current;
-
-    const m = new Matrix4();
-    m.makeRotationY(totalYaw);
+    const m = new Matrix4().makeRotationY(totalYaw);
     const rotated = base.clone().applyMatrix4(m);
 
     const desiredPos = new Vector3(target[0], target[1], target[2]).add(rotated);
@@ -75,7 +73,6 @@ const CameraController = forwardRef<any, CameraControllerProps>(({
 
     const desiredLookAt = new Vector3(target[0], target[1] + 1.2, target[2]);
     currentLookAt.current.lerp(desiredLookAt, lookAtLerp);
-
     camera.lookAt(currentLookAt.current);
   });
 
