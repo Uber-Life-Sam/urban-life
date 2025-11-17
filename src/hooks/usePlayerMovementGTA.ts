@@ -2,35 +2,12 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 
-// inside usePlayerMovementGTA.ts, movement loop region
-const sprintMultiplier = 1.7;  // example value
-const jumpPower = 0.42;
-const gravity = -9.8 * 0.02;
-
-const keys = window._gameKeys!;
-const isGrounded = player.position.y <= 1.001;
-
-// Sprint
-let moveSpeed = baseSpeed;
-if (keys.shift) {
-  moveSpeed *= sprintMultiplier;
-}
-
-// Jump
-if (keys.space && isGrounded) {
-  velocity.y = jumpPower;
-}
-
-// Gravity apply
-velocity.y += gravity;
-
-// then apply velocity.x,z as before
-// and apply velocity.y to player.position.y
-
 type PlayerState = {
   position: [number, number, number];
-  rotation: number; // Y rotation in radians (single number)
+  rotationY: number; // single Y rotation (radians)
   isMoving: boolean;
+  isSprinting: boolean;
+  isGrounded: boolean;
 };
 
 declare global {
@@ -40,107 +17,143 @@ declare global {
 export default function usePlayerMovementGTA(playerRef: any, cameraRef: any) {
   const [state, setState] = useState<PlayerState>({
     position: [0, 1, 0],
-    rotation: 0,
-    isMoving: false
+    rotationY: 0,
+    isMoving: false,
+    isSprinting: false,
+    isGrounded: true,
   });
 
+  const velRef = useRef(new THREE.Vector3(0, 0, 0));
   const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!window._gameKeys) window._gameKeys = { w: false, a: false, s: false, d: false };
+    if (!window._gameKeys) window._gameKeys = { w: false, a: false, s: false, d: false, Shift: false, " ": false };
 
-    const onDown = (e: KeyboardEvent) => {
-      const k = e.key.toLowerCase();
-      if (k in window._gameKeys!) window._gameKeys![k] = true;
+    const down = (e: KeyboardEvent) => {
+      const k = e.key === " " ? " " : (e.key.length === 1 ? e.key.toLowerCase() : e.key);
+      if (k in window._gameKeys) window._gameKeys[k] = true;
     };
-    const onUp = (e: KeyboardEvent) => {
-      const k = e.key.toLowerCase();
-      if (k in window._gameKeys!) window._gameKeys![k] = false;
+    const up = (e: KeyboardEvent) => {
+      const k = e.key === " " ? " " : (e.key.length === 1 ? e.key.toLowerCase() : e.key);
+      if (k in window._gameKeys) window._gameKeys[k] = false;
     };
 
-    window.addEventListener("keydown", onDown);
-    window.addEventListener("keyup", onUp);
+    window.addEventListener("keydown", down);
+    window.addEventListener("keyup", up);
     return () => {
-      window.removeEventListener("keydown", onDown);
-      window.removeEventListener("keyup", onUp);
+      window.removeEventListener("keydown", down);
+      window.removeEventListener("keyup", up);
     };
   }, []);
 
   useEffect(() => {
-    const speed = 0.12; // tweak to change walk speed
-    const friction = 0.86; // higher -> quicker stop
-    const velocity = new THREE.Vector3();
+    const GRAV = -9.8;
+    const STEP = 1 / 60; // fixed-step feel
+    const walkSpeed = 0.06;
+    const sprintMultiplier = 1.9;
+    const jumpImpulse = 4.6;
+    const damping = 0.86;
+
     const tmp = new THREE.Vector3();
+    const forward = new THREE.Vector3();
+    const right = new THREE.Vector3();
 
     const loop = () => {
       rafRef.current = requestAnimationFrame(loop);
 
-      const keys = window._gameKeys || { w: false, a: false, s: false, d: false };
-
+      const keys = window._gameKeys || {};
       if (!playerRef?.current || !cameraRef?.current) return;
 
       const cam: THREE.Camera = cameraRef.current;
       const player: any = playerRef.current;
 
-      // forward relative to camera but flattened
-      const forward = new THREE.Vector3();
+      // compute forward/right based on camera orientation (XZ plane)
       cam.getWorldDirection(forward);
       forward.y = 0;
       if (forward.lengthSq() === 0) forward.set(0, 0, -1);
       forward.normalize();
 
-      // right vector (camera-facing)
-      const right = new THREE.Vector3();
       right.crossVectors(new THREE.Vector3(0, 1, 0), forward).normalize();
 
-      // desired input vector
+      // desired movement direction
       tmp.set(0, 0, 0);
       if (keys.w) tmp.add(forward);
       if (keys.s) tmp.add(forward.clone().multiplyScalar(-1));
       if (keys.a) tmp.add(right.clone().multiplyScalar(-1));
       if (keys.d) tmp.add(right);
 
-      let moved = false;
-      if (tmp.lengthSq() > 1e-4) {
-        tmp.normalize().multiplyScalar(speed);
-        // add to velocity (smoothing)
-        velocity.add(tmp);
-        moved = true;
+      const isMoving = tmp.lengthSq() > 0.0001;
+      const isSprinting = !!keys.Shift && isMoving;
+
+      // Normalize direction and scale by speed
+      if (isMoving) {
+        tmp.normalize();
+        const speed = walkSpeed * (isSprinting ? sprintMultiplier : 1);
+        tmp.multiplyScalar(speed);
+        // blend into velocity (smoother acceleration)
+        velRef.current.x += (tmp.x - velRef.current.x) * 0.25;
+        velRef.current.z += (tmp.z - velRef.current.z) * 0.25;
       } else {
-        // apply friction
-        velocity.multiplyScalar(friction);
-        if (velocity.length() < 1e-3) velocity.set(0, 0, 0);
+        // apply damping to horizontal velocity
+        velRef.current.x *= damping;
+        velRef.current.z *= damping;
+        if (Math.abs(velRef.current.x) < 0.001) velRef.current.x = 0;
+        if (Math.abs(velRef.current.z) < 0.001) velRef.current.z = 0;
       }
 
-      // clamp velocity so player doesn't accelerate forever
-      const maxSpeed = 0.45;
-      if (velocity.length() > maxSpeed) velocity.setLength(maxSpeed);
+      // gravity + jumping
+      const grounded = player.position.y <= 1.001 || velRef.current.y === 0 && player.position.y <= 1.01;
 
-      // apply to player world position
-      player.position.add(velocity);
-
-      // update rotation to face movement direction if moving
-      let rotY = state.rotation;
-      if (velocity.lengthSq() > 1e-6) {
-        rotY = Math.atan2(velocity.x, velocity.z);
-        player.rotation.y = rotY;
+      if (keys[" "] && grounded) {
+        velRef.current.y = jumpImpulse;
+      } else {
+        // apply gravity
+        velRef.current.y += GRAV * STEP;
       }
 
-      // sync state (so UI / other components can use it)
-      setState({
-        position: [player.position.x, player.position.y, player.position.z],
-        rotation: rotY,
-        isMoving: moved || velocity.length() > 1e-3
-      });
+      // apply position change
+      player.position.x += velRef.current.x;
+      player.position.y += velRef.current.y * STEP;
+      player.position.z += velRef.current.z;
+
+      // simple ground collision (floor at y = 1)
+      if (player.position.y <= 1) {
+        player.position.y = 1;
+        velRef.current.y = 0;
+      }
+
+      // rotation to face movement direction (if moving)
+      if (velRef.current.lengthSq() > 0.0001) {
+        const rotY = Math.atan2(velRef.current.x, velRef.current.z);
+        // smooth rotation
+        const current = player.rotation.y || 0;
+        const newY = current + ((rotY - current) * 0.18);
+        player.rotation.y = newY;
+        setState((prev) => ({
+          position: [player.position.x, player.position.y, player.position.z],
+          rotationY: newY,
+          isMoving: isMoving,
+          isSprinting: isSprinting,
+          isGrounded: player.position.y <= 1.01
+        }));
+      } else {
+        // only update position/grounded
+        setState((prev) => ({
+          position: [player.position.x, player.position.y, player.position.z],
+          rotationY: prev.rotationY,
+          isMoving: false,
+          isSprinting: isSprinting,
+          isGrounded: player.position.y <= 1.01
+        }));
+      }
     };
 
     rafRef.current = requestAnimationFrame(loop);
-
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     };
-  }, [playerRef, cameraRef, state.rotation]);
+  }, [playerRef, cameraRef]);
 
   return state;
 }
