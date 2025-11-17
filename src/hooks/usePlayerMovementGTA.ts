@@ -9,21 +9,18 @@ type PlayerState = {
 };
 
 declare global {
-  interface Window {
-    _gameKeys?: Record<string, boolean>;
-  }
+  interface Window { _gameKeys?: Record<string, boolean>; }
 }
 
 export default function usePlayerMovementGTA(playerRef: any, cameraRef: any) {
   const [state, setState] = useState<PlayerState>({
     position: [0, 1, 0],
     rotation: 0,
-    isMoving: false,
+    isMoving: false
   });
 
   const rafRef = useRef<number | null>(null);
 
-  // keyboard init
   useEffect(() => {
     if (!window._gameKeys) window._gameKeys = { w: false, a: false, s: false, d: false };
 
@@ -44,38 +41,34 @@ export default function usePlayerMovementGTA(playerRef: any, cameraRef: any) {
     };
   }, []);
 
-  // movement loop
   useEffect(() => {
-    const baseSpeed = 0.12; // adjust for desired walking speed
-    const friction = 0.85;
-
-    const velocity = new THREE.Vector3(0, 0, 0);
+    const speed = 0.12; // tweak to change walk speed
+    const friction = 0.86; // higher -> quicker stop
+    const velocity = new THREE.Vector3();
     const tmp = new THREE.Vector3();
 
     const loop = () => {
       rafRef.current = requestAnimationFrame(loop);
+
       const keys = window._gameKeys || { w: false, a: false, s: false, d: false };
 
-      if (!playerRef?.current || !cameraRef?.current) {
-        // keep loop alive until refs exist
-        return;
-      }
+      if (!playerRef?.current || !cameraRef?.current) return;
 
       const cam: THREE.Camera = cameraRef.current;
       const player: any = playerRef.current;
 
-      // camera forward in XZ
+      // forward relative to camera but flattened
       const forward = new THREE.Vector3();
       cam.getWorldDirection(forward);
       forward.y = 0;
       if (forward.lengthSq() === 0) forward.set(0, 0, -1);
       forward.normalize();
 
-      // right vector (camera local right)
+      // right vector (camera-facing)
       const right = new THREE.Vector3();
       right.crossVectors(new THREE.Vector3(0, 1, 0), forward).normalize();
 
-      // desired input
+      // desired input vector
       tmp.set(0, 0, 0);
       if (keys.w) tmp.add(forward);
       if (keys.s) tmp.add(forward.clone().multiplyScalar(-1));
@@ -83,36 +76,36 @@ export default function usePlayerMovementGTA(playerRef: any, cameraRef: any) {
       if (keys.d) tmp.add(right);
 
       let moved = false;
-
-      if (tmp.lengthSq() > 0.0001) {
-        tmp.normalize().multiplyScalar(baseSpeed);
-        velocity.add(tmp); // accumulate velocity for smoothness
+      if (tmp.lengthSq() > 1e-4) {
+        tmp.normalize().multiplyScalar(speed);
+        // add to velocity (smoothing)
+        velocity.add(tmp);
         moved = true;
       } else {
-        // slow down
+        // apply friction
         velocity.multiplyScalar(friction);
-        if (velocity.length() < 0.001) velocity.set(0, 0, 0);
+        if (velocity.length() < 1e-3) velocity.set(0, 0, 0);
       }
 
-      // clamp velocity to avoid explosion
-      const maxVel = 0.6;
-      if (velocity.length() > maxVel) velocity.setLength(maxVel);
+      // clamp velocity so player doesn't accelerate forever
+      const maxSpeed = 0.45;
+      if (velocity.length() > maxSpeed) velocity.setLength(maxSpeed);
 
-      // apply to player position
+      // apply to player world position
       player.position.add(velocity);
 
-      // compute rotation from velocity if moving
+      // update rotation to face movement direction if moving
       let rotY = state.rotation;
-      if (velocity.lengthSq() > 0.00001) {
+      if (velocity.lengthSq() > 1e-6) {
         rotY = Math.atan2(velocity.x, velocity.z);
         player.rotation.y = rotY;
       }
 
-      // sync state
+      // sync state (so UI / other components can use it)
       setState({
         position: [player.position.x, player.position.y, player.position.z],
         rotation: rotY,
-        isMoving: moved || velocity.length() > 0.001,
+        isMoving: moved || velocity.length() > 1e-3
       });
     };
 
@@ -122,7 +115,7 @@ export default function usePlayerMovementGTA(playerRef: any, cameraRef: any) {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     };
-  }, [playerRef, cameraRef]);
+  }, [playerRef, cameraRef, state.rotation]);
 
   return state;
 }
