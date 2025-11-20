@@ -1,33 +1,35 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Urban Life Sam | Play the Ultimate Fun Time City Game</title>
-    <meta name="description" content="Step into the exciting world of Urban Life Sam! Build, explore, and have fun in this immersive city adventure game full of surprises and challenges.">
-    <meta name="author" content="Lovable" />
-
-    
-    
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/bO0Ie8GDSrfz875bj1BhLc1IWKz2/social-images/social-1763063205467-ChatGPT Image Nov 14, 2025, 12_46_29 AM.png">
-
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@Lovable" />
-    <meta name="twitter:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/bO0Ie8GDSrfz875bj1BhLc1IWKz2/social-images/social-1763063205467-ChatGPT Image Nov 14, 2025, 12_46_29 AM.png">
-    
-  
-  
-  
-  <meta property="og:title" content="Urban Life Sam | Play the Ultimate Fun Time City Game">
-  <meta name="twitter:title" content="Urban Life Sam | Play the Ultimate Fun Time City Game">
-  <meta property="og:description" content="Step into the exciting world of Urban Life Sam! Build, explore, and have fun in this immersive city adventure game full of surprises and challenges.">
-  <meta name="twitter:description" content="Step into the exciting world of Urban Life Sam! Build, explore, and have fun in this immersive city adventure game full of surprises and challenges.">
-  <link rel="icon" type="image/x-icon" href="https://storage.googleapis.com/gpt-engineer-file-uploads/bO0Ie8GDSrfz875bj1BhLc1IWKz2/uploads/1763063211978-ChatGPT Image Nov 14, 2025, 12_46_32 AM.png">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Urban Life - 3D Game</title>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 0; 
+            overflow: hidden; 
+            background: #000;
+        }
+        canvas { 
+            display: block; 
+        }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-family: Arial;
+        }
+    </style>
 </head>
-
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<body>
+    <div id="info">Use Arrow Keys or WASD to move</div>
+    
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- Main Game Code -->
+    <script src="game.js"></script>
+</body>
 </html>
