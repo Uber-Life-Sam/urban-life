@@ -1,9 +1,9 @@
-// Urban Life 3D Game - Main Code
-// This file contains all the game logic
+// Urban Life 3D Game - FIXED CODE
+console.log('Game starting...');
 
 // 1. SETUP BASIC SCENE
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87CEEB); // Sky blue background
+scene.background = new THREE.Color(0x87CEEB); // Sky blue
 
 // Camera setup
 const camera = new THREE.PerspectiveCamera(
@@ -14,30 +14,28 @@ const camera = new THREE.PerspectiveCamera(
 );
 
 // Renderer setup
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+const renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.shadowMap.enabled = true;
 document.body.appendChild(renderer.domElement);
 
-// 2. CREATE PLAYER
+// 2. CREATE PLAYER (Green Cube)
 const playerGeometry = new THREE.BoxGeometry(1, 2, 1);
 const playerMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
 const player = new THREE.Mesh(playerGeometry, playerMaterial);
-player.position.y = 1; // Raise above ground
+player.position.y = 1;
 scene.add(player);
 
-// 3. ADD GROUND
+// 3. ADD GROUND (Green Plane)
 const groundGeometry = new THREE.PlaneGeometry(100, 100);
 const groundMaterial = new THREE.MeshBasicMaterial({ 
     color: 0x3a7d3a,
     side: THREE.DoubleSide
 });
 const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-ground.rotation.x = Math.PI / 2; // Rotate to be horizontal
-ground.position.y = 0;
+ground.rotation.x = -Math.PI / 2; // FIXED: Correct rotation
 scene.add(ground);
 
-// 4. ADD BUILDINGS
+// 4. ADD SOME BUILDINGS (Colored Cubes)
 function createBuilding(x, z, width, height, depth, color) {
     const geometry = new THREE.BoxGeometry(width, height, depth);
     const material = new THREE.MeshBasicMaterial({ color: color });
@@ -47,96 +45,67 @@ function createBuilding(x, z, width, height, depth, color) {
     return building;
 }
 
-// Create multiple buildings
-const buildings = [
-    createBuilding(-20, -15, 8, 12, 8, 0xff6b6b),
-    createBuilding(15, -10, 10, 15, 10, 0x4ecdc4),
-    createBuilding(-10, 20, 6, 8, 6, 0xffe66d),
-    createBuilding(25, 15, 12, 20, 12, 0x6a0572),
-    createBuilding(-30, 5, 7, 10, 7, 0x1a535c)
-];
+// Create buildings around the map
+createBuilding(-15, -10, 8, 10, 8, 0xff0000);  // Red building
+createBuilding(10, 5, 6, 8, 6, 0x0000ff);     // Blue building  
+createBuilding(20, -15, 10, 12, 10, 0xffff00); // Yellow building
+createBuilding(-20, 15, 7, 15, 7, 0xff00ff);   // Pink building
 
-// 5. KEYBOARD CONTROLS
-const keys = {
-    ArrowUp: false,
-    ArrowDown: false,
-    ArrowLeft: false,
-    ArrowRight: false,
-    'w': false,
-    's': false,
-    'a': false,
-    'd': false
-};
+// 5. SET CAMERA POSITION (IMPORTANT FIX)
+camera.position.set(0, 10, 15); // Camera behind and above player
+camera.lookAt(0, 0, 0);
 
-// Keyboard event listeners
+// 6. KEYBOARD CONTROLS
+const keys = {};
+
 document.addEventListener('keydown', (event) => {
-    if (keys.hasOwnProperty(event.key)) {
-        keys[event.key] = true;
-    }
+    keys[event.key] = true;
 });
 
 document.addEventListener('keyup', (event) => {
-    if (keys.hasOwnProperty(event.key)) {
-        keys[event.key] = false;
-    }
+    keys[event.key] = false;
 });
 
-// 6. PLAYER MOVEMENT
-const playerSpeed = 0.2;
-
-function updatePlayerMovement() {
-    // Forward/Backward
+// 7. PLAYER MOVEMENT
+function updatePlayer() {
+    const speed = 0.3;
+    
     if (keys['ArrowUp'] || keys['w']) {
-        player.position.z -= playerSpeed;
+        player.position.z -= speed;
     }
     if (keys['ArrowDown'] || keys['s']) {
-        player.position.z += playerSpeed;
+        player.position.z += speed;
     }
-    
-    // Left/Right
     if (keys['ArrowLeft'] || keys['a']) {
-        player.position.x -= playerSpeed;
+        player.position.x -= speed;
     }
     if (keys['ArrowRight'] || keys['d']) {
-        player.position.x += playerSpeed;
+        player.position.x += speed;
     }
 }
 
-// 7. CAMERA SYSTEM (GTA Style - Behind Player)
+// 8. UPDATE CAMERA (GTA Style)
 function updateCamera() {
-    // Camera follows player from behind and above
-    const cameraDistance = 10;
-    const cameraHeight = 5;
-    
+    // Camera follows player from behind
     camera.position.x = player.position.x;
-    camera.position.y = player.position.y + cameraHeight;
-    camera.position.z = player.position.z + cameraDistance;
+    camera.position.y = player.position.y + 8;  // Height
+    camera.position.z = player.position.z + 10; // Distance behind
     
-    // Camera looks at player
-    camera.lookAt(player.position.x, player.position.y + 2, player.position.z);
+    camera.lookAt(player.position.x, player.position.y, player.position.z);
 }
-
-// 8. WINDOW RESIZE HANDLING
-window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-});
 
 // 9. GAME LOOP
 function animate() {
     requestAnimationFrame(animate);
     
-    // Update game state
-    updatePlayerMovement();
+    updatePlayer();
     updateCamera();
     
-    // Render scene
     renderer.render(scene, camera);
 }
 
 // 10. START THE GAME
 animate();
 
-console.log('Urban Life 3D Game Started!');
-console.log('Controls: Arrow Keys or WASD to move');
+console.log('Game started successfully!');
+console.log('Use Arrow Keys or WASD to move the green cube');
