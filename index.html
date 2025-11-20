@@ -10,6 +10,7 @@
             padding: 0; 
             overflow: hidden; 
             background: #000;
+            font-family: Arial, sans-serif;
         }
         canvas { 
             display: block; 
@@ -19,12 +20,19 @@
             top: 10px;
             left: 10px;
             color: white;
-            font-family: Arial;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 100;
         }
     </style>
 </head>
 <body>
-    <div id="info">Use Arrow Keys or WASD to move</div>
+    <div id="info">
+        <h3>Urban Life 3D Game</h3>
+        <p>Use Arrow Keys or WASD to move</p>
+        <p>Move the green cube around the city!</p>
+    </div>
     
     <!-- Three.js Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
