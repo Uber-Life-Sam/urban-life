@@ -11,6 +11,9 @@ import Vehicle from "./Vehicle";
 import ClickableBuilding from "./ClickableBuilding";
 import PlayerHouse from "./PlayerHouse";
 import PlayerLand from "./PlayerLand";
+import WeatherSystem from "./WeatherSystem";
+import DoorInteraction from "./DoorInteraction";
+import PerformanceStats from "./PerformanceStats";
 import { useNPCMovement } from "@/hooks/useNPCMovement";
 import { useVehicleMovement } from "@/hooks/useVehicleMovement";
 import { npcRoutines, NPC_COLORS } from "@/data/npcRoutines";
@@ -67,6 +70,9 @@ const GameScene = ({
   onNPCPositionsUpdate,
   playerRef,
   cameraRef,
+  weather,
+  showPerformanceStats,
+  onEnterInterior,
 }: GameSceneProps) => {
   const isNight = timeOfDay < 6 || timeOfDay > 19;
 
@@ -106,6 +112,9 @@ const GameScene = ({
     });
   };
 
+  // Calculate entity count for performance stats
+  const entityCount = npcRoutines.length + buildings.length + trafficLightStates.length + (roadPaths.length * 2);
+
   return (
     <div className="w-full h-full">
       <Canvas shadows dpr={[1, 2]} camera={{ position: [10, 8, 10], fov: 60 }}>
@@ -135,6 +144,8 @@ const GameScene = ({
             shadow-mapSize-height={1024}
           />
 
+          <WeatherSystem weather={weather} />
+
           <CityEnvironment timeOfDay={timeOfDay} isNight={isNight} />
 
           <PlayerLand position={[0, 0, -30]} />
@@ -143,9 +154,19 @@ const GameScene = ({
           {/* Player receives ref so movement hook can update world position directly */}
           <Player ref={playerRef} rotation={playerRotation} isMoving={isMoving} />
 
-          {/* Buildings */}
+          {/* Buildings with door interactions */}
           {buildings.map((building) => (
-            <ClickableBuilding key={building.id} building={building} onClick={onBuildingClick} />
+            <group key={building.id}>
+              <ClickableBuilding building={building} onClick={onBuildingClick} />
+              {building.hasInterior && (
+                <DoorInteraction
+                  position={building.position}
+                  playerPosition={playerPosition}
+                  onEnter={() => onEnterInterior(building.id)}
+                  buildingName={building.name}
+                />
+              )}
+            </group>
           ))}
 
           {/* NPCs */}
@@ -185,6 +206,9 @@ const GameScene = ({
           {/* Camera: Perspective + our Controller */}
           <PerspectiveCamera makeDefault position={[10, 8, 10]} />
           <CameraController ref={cameraRef} target={playerPosition} offset={cameraOffset} followRotation={playerRotation} />
+
+          {/* Performance Stats */}
+          {showPerformanceStats && <PerformanceStats entityCount={entityCount} />}
         </Suspense>
       </Canvas>
     </div>
