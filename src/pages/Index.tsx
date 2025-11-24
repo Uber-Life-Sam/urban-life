@@ -1,7 +1,7 @@
 // src/pages/Index.tsx
 import { useState, useEffect, useRef } from "react";
-import usePlayerMovementGTA from "@/hooks/usePlayerMovementGTA";
-import { useCameraOrbit } from "@/hooks/useCameraOrbit";
+import { useGTAPlayerMovement } from "@/hooks/useGTAPlayerMovement";
+import { useCameraRotate } from "@/hooks/useCameraRotate";
 import { useWeather } from "@/hooks/useWeather";
 import { useWeatherAudio } from "@/hooks/useWeatherAudio";
 import { useGameSave } from "@/hooks/useGameSave";
@@ -14,6 +14,7 @@ import QuestTracker from "@/components/game/QuestTracker";
 import QuestJournal from "@/components/game/QuestJournal";
 import InteriorEnvironment from "@/components/game/InteriorEnvironment";
 import MiniMap from "@/components/game/MiniMap";
+import ControlsHint from "@/components/game/ControlsHint";
 
 import { Button } from "@/components/ui/button";
 import { Play, Pause, Activity, BookOpen, Save } from "lucide-react";
@@ -26,37 +27,23 @@ import { Canvas } from "@react-three/fiber";
 import { PerspectiveCamera } from "@react-three/drei";
 
 const Index = () => {
-
   const playerRef = useRef<any>(null);
   const cameraRef = useRef<any>(null);
 
-  const cameraOrbit = useCameraOrbit(8, Math.PI / 4);
-
-  const movement = usePlayerMovementGTA(playerRef, cameraRef);
-
-  const [playerState, setPlayerState] = useState({
-    position: [0, 1, 0] as [number, number, number],
-    rotation: 0,   // <-- FIXED (only Y angle)
-    isMoving: false,
+  // GTA 5 style camera rotation
+  const cameraRotation = useCameraRotate({
+    sensitivity: 0.003,
+    verticalClamp: { min: -Math.PI / 4, max: Math.PI / 3 },
   });
 
-  useEffect(() => {
-    if (!movement) return;
-
-    setPlayerState({
-      position: Array.isArray(movement.position) 
-        ? movement.position 
-        : playerState.position,
-
-      rotation: typeof movement.rotation === "number"
-        ? movement.rotation
-        : Array.isArray(movement.rotation)
-          ? movement.rotation[1]   // FIXED
-          : playerState.rotation,
-
-      isMoving: movement.isMoving ?? playerState.isMoving,
-    });
-  }, [movement]);
+  // GTA 5 style player movement
+  const playerState = useGTAPlayerMovement({
+    playerRef,
+    cameraRotation,
+    walkSpeed: 6,
+    sprintSpeed: 9,
+    rotationSpeed: 8,
+  });
 
   const [gameTime, setGameTime] = useState(8);
   const [isPaused, setIsPaused] = useState(false);
@@ -101,12 +88,13 @@ const Index = () => {
   useEffect(() => {
     const loadSavedGame = async () => {
       const savedData = await loadGame();
-      if (savedData) {
-        setPlayerState({
-          position: [savedData.playerPosition.x, savedData.playerPosition.y, savedData.playerPosition.z],
-          rotation: savedData.playerRotation,
-          isMoving: false,
-        });
+      if (savedData && playerRef.current) {
+        // Set player position directly
+        playerRef.current.position.set(
+          savedData.playerPosition.x,
+          savedData.playerPosition.y,
+          savedData.playerPosition.z
+        );
         setMoney(savedData.money);
         setInventory(savedData.inventory);
         setGameTime(savedData.timeOfDay);
@@ -206,12 +194,13 @@ const Index = () => {
   };
 
   const handleExitInterior = () => {
-    if (currentInterior) {
-      // Teleport player to exit position
-      setPlayerState({
-        ...playerState,
-        position: currentInterior.exitPosition,
-      });
+    if (currentInterior && playerRef.current) {
+      // Teleport player to exit position directly
+      playerRef.current.position.set(
+        currentInterior.exitPosition[0],
+        currentInterior.exitPosition[1],
+        currentInterior.exitPosition[2]
+      );
     }
     setIsInInterior(false);
     setCurrentInterior(null);
@@ -281,7 +270,7 @@ const Index = () => {
           playerPosition={playerState.position}
           playerRotation={playerState.rotation}
           isMoving={playerState.isMoving}
-          cameraOffset={cameraOrbit.offset}
+          isSprinting={playerState.isSprinting}
           onBuildingClick={handleBuildingClick}
           onNPCPositionsUpdate={setNpcPositions}
           showPerformanceStats={showPerformanceStats}
@@ -290,15 +279,18 @@ const Index = () => {
       )}
 
       {!isInInterior && (
-        <MiniMap 
-          playerPosition={playerState.position}
-          buildings={buildings}
-          npcPositions={npcPositions}
-          questMarkers={activeQuests.map(q => ({
-            position: [0, 0, 0] as [number, number, number], // You can add actual quest locations
-            type: 'quest'
-          }))}
-        />
+        <>
+          <MiniMap 
+            playerPosition={playerState.position}
+            buildings={buildings}
+            npcPositions={npcPositions}
+            questMarkers={activeQuests.map(q => ({
+              position: [0, 0, 0] as [number, number, number],
+              type: 'quest'
+            }))}
+          />
+          <ControlsHint />
+        </>
       )}
 
       <QuestTracker activeQuests={activeQuests} />
