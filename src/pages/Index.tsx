@@ -4,6 +4,7 @@ import usePlayerMovementGTA from "@/hooks/usePlayerMovementGTA";
 import { useCameraOrbit } from "@/hooks/useCameraOrbit";
 import { useWeather } from "@/hooks/useWeather";
 import { useWeatherAudio } from "@/hooks/useWeatherAudio";
+import { useGameSave } from "@/hooks/useGameSave";
 
 import GameScene from "@/components/game/GameScene";
 import GameHUD from "@/components/game/GameHUD";
@@ -12,10 +13,11 @@ import DialogueUI from "@/components/game/DialogueUI";
 import QuestTracker from "@/components/game/QuestTracker";
 import QuestJournal from "@/components/game/QuestJournal";
 import InteriorEnvironment from "@/components/game/InteriorEnvironment";
+import MiniMap from "@/components/game/MiniMap";
 
 import { Button } from "@/components/ui/button";
-import { Play, Pause, Activity, BookOpen } from "lucide-react";
-import { Building } from "@/data/buildings";
+import { Play, Pause, Activity, BookOpen, Save } from "lucide-react";
+import { Building, buildings } from "@/data/buildings";
 import { shopItems } from "@/data/shopItems";
 import { Quest, DialogueNode, DialogueOption } from "@/types/quest";
 import { availableQuests, dialogueDatabase } from "@/data/quests";
@@ -89,6 +91,67 @@ const Index = () => {
   const [currentInterior, setCurrentInterior] = useState<Interior | null>(null);
   const [isInInterior, setIsInInterior] = useState(false);
 
+  // NPC tracking for mini-map
+  const [npcPositions, setNpcPositions] = useState<Array<[number, number, number]>>([]);
+
+  // Save system
+  const { saveGame, loadGame, isSaving } = useGameSave();
+
+  // Load game on mount
+  useEffect(() => {
+    const loadSavedGame = async () => {
+      const savedData = await loadGame();
+      if (savedData) {
+        setPlayerState({
+          position: [savedData.playerPosition.x, savedData.playerPosition.y, savedData.playerPosition.z],
+          rotation: savedData.playerRotation,
+          isMoving: false,
+        });
+        setMoney(savedData.money);
+        setInventory(savedData.inventory);
+        setGameTime(savedData.timeOfDay);
+        setQuests(savedData.questStates.length > 0 ? savedData.questStates : availableQuests);
+      }
+    };
+    loadSavedGame();
+  }, [loadGame]);
+
+  // Auto-save every 30 seconds
+  useEffect(() => {
+    const autoSaveInterval = setInterval(() => {
+      saveGame({
+        playerPosition: { 
+          x: playerState.position[0], 
+          y: playerState.position[1], 
+          z: playerState.position[2] 
+        },
+        playerRotation: playerState.rotation,
+        money,
+        inventory,
+        questStates: quests,
+        timeOfDay: gameTime,
+      });
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(autoSaveInterval);
+  }, [playerState, money, inventory, quests, gameTime, saveGame]);
+
+  // Manual save function
+  const handleManualSave = () => {
+    saveGame({
+      playerPosition: { 
+        x: playerState.position[0], 
+        y: playerState.position[1], 
+        z: playerState.position[2] 
+      },
+      playerRotation: playerState.rotation,
+      money,
+      inventory,
+      questStates: quests,
+      timeOfDay: gameTime,
+    });
+  };
+
   const handleBuy = (itemId: string) => {
     const item = shopItems.find((i) => i.id === itemId);
     if (!item || money < item.price) return;
@@ -161,6 +224,15 @@ const Index = () => {
 
       <div className="absolute top-4 right-4 z-50 flex gap-2">
         <Button 
+          onClick={handleManualSave} 
+          variant="secondary"
+          size="icon"
+          title="Save Game"
+          disabled={isSaving}
+        >
+          <Save className={isSaving ? "animate-pulse" : ""} />
+        </Button>
+        <Button 
           onClick={() => setIsQuestJournalOpen(true)} 
           variant="secondary"
           size="icon"
@@ -211,9 +283,21 @@ const Index = () => {
           isMoving={playerState.isMoving}
           cameraOffset={cameraOrbit.offset}
           onBuildingClick={handleBuildingClick}
-          onNPCPositionsUpdate={() => {}}
+          onNPCPositionsUpdate={setNpcPositions}
           showPerformanceStats={showPerformanceStats}
           onEnterInterior={handleEnterInterior}
+        />
+      )}
+
+      {!isInInterior && (
+        <MiniMap 
+          playerPosition={playerState.position}
+          buildings={buildings}
+          npcPositions={npcPositions}
+          questMarkers={activeQuests.map(q => ({
+            position: [0, 0, 0] as [number, number, number], // You can add actual quest locations
+            type: 'quest'
+          }))}
         />
       )}
 
