@@ -2,7 +2,13 @@
 import { useThree, useFrame } from "@react-three/fiber";
 import { useRef, forwardRef, useImperativeHandle } from "react";
 
-const CameraController = forwardRef(
+interface CameraControllerProps {
+  target?: [number, number, number];
+  offset?: [number, number, number];
+  followRotation?: number;
+}
+
+const CameraController = forwardRef<any, CameraControllerProps>(
   ({ target = [0, 0, 0], offset = [0, 5, 10], followRotation = 0 }, ref) => {
     const { camera } = useThree();
     const rotation = useRef({ x: 0, y: followRotation });
