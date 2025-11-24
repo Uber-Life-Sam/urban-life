@@ -25,9 +25,10 @@ interface GameSceneProps {
   cameraOffset: [number, number, number];
   onBuildingClick: (building: Building) => void;
   onNPCPositionsUpdate: (positions: Array<[number, number, number]>) => void;
-
   playerRef: any;
   cameraRef: any;
+  weather: any;
+  onEnterInterior: (interiorId: string) => void;
 }
 
 const NPCController = ({
