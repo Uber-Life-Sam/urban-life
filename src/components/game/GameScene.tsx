@@ -4,7 +4,7 @@ import { Sky, PerspectiveCamera } from "@react-three/drei";
 import { Suspense, useState, useEffect } from "react";
 import CityEnvironment from "./CityEnvironment";
 import Player from "./Player";
-import CameraController from "./CameraController";
+import GTACameraController from "./GTACameraController";
 import NPC from "./NPC";
 import TrafficLight from "./TrafficLight";
 import Vehicle from "./Vehicle";
@@ -25,7 +25,7 @@ interface GameSceneProps {
   playerPosition: [number, number, number];
   playerRotation: number;
   isMoving: boolean;
-  cameraOffset: [number, number, number];
+  isSprinting: boolean;
   onBuildingClick: (building: Building) => void;
   onNPCPositionsUpdate: (positions: Array<[number, number, number]>) => void;
   playerRef: any;
@@ -65,7 +65,7 @@ const GameScene = ({
   playerPosition,
   playerRotation,
   isMoving,
-  cameraOffset,
+  isSprinting,
   onBuildingClick,
   onNPCPositionsUpdate,
   playerRef,
@@ -203,14 +203,28 @@ const GameScene = ({
             );
           })}
 
-          {/* Camera: Perspective + our Controller */}
-          <PerspectiveCamera makeDefault position={[10, 8, 10]} />
-          <CameraController ref={cameraRef} target={playerPosition} offset={cameraOffset} followRotation={playerRotation} />
+          {/* GTA 5 Style Camera System */}
+          <PerspectiveCamera makeDefault position={[0, 3, -5]} fov={60} />
+          <GTACameraController 
+            ref={cameraRef} 
+            target={playerPosition} 
+            offset={[0, 2, -4]} 
+            smoothing={10}
+          />
 
           {/* Performance Stats */}
           {showPerformanceStats && <PerformanceStats entityCount={entityCount} />}
         </Suspense>
       </Canvas>
+      
+      {/* Sprint indicator */}
+      {isSprinting && (
+        <div className="absolute bottom-8 right-8 z-30">
+          <div className="px-4 py-2 bg-primary/90 backdrop-blur-sm rounded-lg border border-primary-foreground/20 animate-pulse">
+            <span className="text-primary-foreground font-bold text-sm">SPRINTING</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
