@@ -28,6 +28,7 @@ interface GameSceneProps {
   playerRef: any;
   cameraRef: any;
   weather: any;
+  showPerformanceStats: boolean;
   onEnterInterior: (interiorId: string) => void;
 }
 
