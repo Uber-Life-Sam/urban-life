@@ -1,67 +1,68 @@
-import { useEffect, useRef } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useEffect, useRef } from 'react';
 
-export const useCameraRotate = (camera: any) => {
-  const rotating = useRef(false);
-  const rotationSpeed = 0.002;
-  const mouse = useRef({ x: 0, y: 0 });
+export interface CameraRotation {
+  horizontal: number;
+  vertical: number;
+}
+
+interface UseCameraRotateOptions {
+  sensitivity?: number;
+  verticalClamp?: { min: number; max: number };
+  initialRotation?: Partial<CameraRotation>;
+}
+
+export const useCameraRotate = ({
+  sensitivity = 0.002,
+  verticalClamp = { min: -Math.PI / 3, max: Math.PI / 3 },
+  initialRotation = {},
+}: UseCameraRotateOptions = {}) => {
+
+  const rotation = useRef<CameraRotation>({
+    horizontal: initialRotation.horizontal ?? 0,
+    vertical: initialRotation.vertical ?? 0.3,
+  });
+
+  const isDragging = useRef(false);
+  const lastMousePos = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
-    const onMouseDown = (e: MouseEvent) => {
+    const handleMouseDown = (e: MouseEvent) => {
       if (e.button === 2) {
-        rotating.current = true;
-
-        // Cursor hide
-        document.body.style.cursor = "none";
-
-        mouse.current.x = e.clientX;
-        mouse.current.y = e.clientY;
+        isDragging.current = true;
+        lastMousePos.current = { x: e.clientX, y: e.clientY };
       }
     };
 
-    const onMouseUp = (e: MouseEvent) => {
-      if (e.button === 2) {
-        rotating.current = false;
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging.current) return;
 
-        // Cursor show
-        document.body.style.cursor = "default";
-      }
+      const deltaX = e.clientX - lastMousePos.current.x;
+      const deltaY = e.clientY - lastMousePos.current.y;
+
+      rotation.current.horizontal -= deltaX * sensitivity;
+
+      rotation.current.vertical = Math.max(
+        verticalClamp.min,
+        Math.min(verticalClamp.max, rotation.current.vertical + deltaY * sensitivity)
+      );
+
+      lastMousePos.current = { x: e.clientX, y: e.clientY };
     };
 
-    const onMouseMove = (e: MouseEvent) => {
-      if (!rotating.current) return;
-
-      const deltaX = e.clientX - mouse.current.x;
-      const deltaY = e.clientY - mouse.current.y;
-
-      mouse.current.x = e.clientX;
-      mouse.current.y = e.clientY;
-
-      camera.rotation.y -= deltaX * rotationSpeed;
-      camera.rotation.x -= deltaY * rotationSpeed;
+    const handleMouseUp = (e: MouseEvent) => {
+      if (e.button === 2) isDragging.current = false;
     };
 
-    // Disable scroll zoom
-    const preventZoom = (e: WheelEvent) => {
-      e.preventDefault();
-    };
-
-    window.addEventListener("mousedown", onMouseDown);
-    window.addEventListener("mouseup", onMouseUp);
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("wheel", preventZoom, { passive: false });
+    window.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
 
     return () => {
-      window.removeEventListener("mousedown", onMouseDown);
-      window.removeEventListener("mouseup", onMouseUp);
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("wheel", preventZoom);
+      window.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
     };
   }, []);
 
-  useFrame(() => {
-    if (!rotating.current) return;
-  });
-
-  return {};
+  return rotation.current;
 };
